@@ -6,6 +6,7 @@
 <title>성과 대시보드 · G카운트</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --green:#059669; --green-dark:#047857; --green-soft:#ECFDF5; --green-line:#A7F3D0;
@@ -125,9 +126,39 @@
     th:nth-child(5), td:nth-child(5){display:none} /* 좁은 화면에선 전환율 숨김 */
   }
   @media (prefers-reduced-motion:reduce){ .bar > i{transition:none} }
+
+  /* ── 로그인 오버레이 ── */
+  .login-overlay{position:fixed; inset:0; background:var(--bg); z-index:100; display:grid; place-items:center; padding:20px}
+  .login-card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow);
+    padding:28px 24px; width:100%; max-width:340px; text-align:center}
+  .login-card .logo{width:44px; height:44px; border-radius:12px; background:var(--green); color:#fff;
+    display:grid; place-items:center; font-weight:800; font-size:20px; margin:0 auto 14px}
+  .login-card h2{font-size:18px; font-weight:800; margin-bottom:4px}
+  .login-card p{font-size:13px; color:var(--ink-3); margin-bottom:18px}
+  .login-card input{width:100%; padding:12px 14px; border:1px solid var(--line); border-radius:var(--r-sm);
+    font-size:15px; font-family:inherit; margin-bottom:10px; background:#fff; color:var(--ink)}
+  .login-card input:focus{outline:2px solid var(--green); outline-offset:1px; border-color:var(--green)}
+  .login-card button{width:100%; padding:12px; border:none; border-radius:var(--r-sm); background:var(--green);
+    color:#fff; font-weight:700; font-size:15px; cursor:pointer; font-family:inherit; margin-top:4px}
+  .login-card button:disabled{opacity:.6; cursor:default}
+  .login-err{color:#DC2626; font-size:13px; font-weight:600; min-height:18px; margin-top:10px}
+  .logout-btn{border:1px solid var(--line); background:var(--card); color:var(--ink-2); font-weight:700;
+    font-size:12px; padding:6px 12px; border-radius:8px; cursor:pointer; font-family:inherit; white-space:nowrap}
 </style>
 </head>
 <body>
+
+<div class="login-overlay" id="loginOverlay">
+  <form class="login-card" id="loginForm">
+    <div class="logo">G</div>
+    <h2>성과 대시보드</h2>
+    <p>허용된 계정만 볼 수 있어요</p>
+    <input type="email" id="loginEmail" placeholder="이메일" autocomplete="username" required />
+    <input type="password" id="loginPw" placeholder="비밀번호" autocomplete="current-password" required />
+    <button type="submit" id="loginBtn">로그인</button>
+    <div class="login-err" id="loginErr"></div>
+  </form>
+</div>
 
 <header>
   <div class="wrap">
@@ -139,7 +170,10 @@
           <div class="sub">기린이가 매일 집계해요 🧡</div>
         </div>
       </div>
-      <div class="updated" id="updated"></div>
+      <div style="display:flex; align-items:center; gap:10px">
+        <div class="updated" id="updated"></div>
+        <button id="logoutBtn" class="logout-btn" style="display:none">로그아웃</button>
+      </div>
     </div>
     <nav class="team-tabs" id="teamTabs" aria-label="팀 선택"></nav>
   </div>
@@ -193,10 +227,15 @@
    설정 — 팀별로 Apps Script 배포 URL을 넣어주세요.
    비워두면 데모 데이터로 동작합니다.
    ════════════════════════════════════════════════════ */
+/* Supabase 연결 정보 */
+const SUPABASE_URL = 'https://azjgoateatcjnlholies.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6GAND6L5YdhOroKzixthEg_7Ad7efx5';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const TEAMS = [
-  { id: 'infl',   name: '인플팀',   apiUrl: '' /* 예: 'https://script.google.com/macros/s/…/exec' */ },
-  { id: 'media',  name: '미디어팀', apiUrl: '' },
-  { id: 'growth', name: '그로스팀', apiUrl: '' },
+  { id: 'infl',   name: '인플팀'   },
+  { id: 'media',  name: '미디어팀' },
+  { id: 'growth', name: '그로스팀' },
 ];
 const DAILY_CONTACT_GOAL = 50; // 인플팀 일일 컨텍 목표
 
@@ -272,17 +311,22 @@ function demoData(teamName){
   return { team: teamName, updatedAt: new Date().toISOString(), daily, demo: true };
 }
 
-/* ── 데이터 로드 ── */
+/* ── 데이터 로드 (Supabase) ── */
 async function loadTeam(team){
   if (state.data[team.id]) return state.data[team.id];
-  let payload = null;
-  if (team.apiUrl){
-    try {
-      const res = await fetch(team.apiUrl);
-      payload = await res.json();
-    } catch (err){ console.warn('API 호출 실패, 데모로 대체:', err); }
+  let payload;
+  try {
+    const { data, error } = await sb
+      .from('daily_stats')
+      .select('date, person, contact, reserve, upload')
+      .eq('team', team.id)
+      .order('date', { ascending: true });
+    if (error) throw error;
+    payload = { team: team.name, updatedAt: new Date().toISOString(), daily: data || [], demo: false };
+  } catch (err){
+    console.error('Supabase 데이터 로드 실패:', err);
+    payload = { team: team.name, updatedAt: new Date().toISOString(), daily: [], demo: false, error: true };
   }
-  if (!payload || !payload.daily) payload = demoData(team.name);
   state.data[team.id] = payload;
   return payload;
 }
@@ -523,7 +567,37 @@ document.getElementById('nextBtn').addEventListener('click', () => move(1));
 document.getElementById('todayBtn').addEventListener('click', () => { state.cursor = null; render(); });
 document.querySelectorAll('#periodSeg button').forEach(b => b.addEventListener('click', () => setPeriod(b.dataset.p)));
 
-setPeriod('day');
+/* ── 로그인(Auth) ── */
+let appStarted = false;
+function showLogin(){ document.getElementById('loginOverlay').style.display = 'grid'; }
+function hideLogin(){ document.getElementById('loginOverlay').style.display = 'none'; }
+function startApp(){
+  if (appStarted) return;
+  appStarted = true;
+  document.getElementById('logoutBtn').style.display = '';
+  setPeriod('day');
+}
+async function initAuth(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if (session){ hideLogin(); startApp(); } else { showLogin(); }
+}
+async function doLogin(e){
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPw').value;
+  const errEl = document.getElementById('loginErr');
+  const btn = document.getElementById('loginBtn');
+  errEl.textContent = '';
+  btn.disabled = true; btn.textContent = '로그인 중…';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+  btn.disabled = false; btn.textContent = '로그인';
+  if (error){ errEl.textContent = '이메일 또는 비밀번호가 올바르지 않아요.'; return; }
+  hideLogin(); startApp();
+}
+document.getElementById('loginForm').addEventListener('submit', doLogin);
+document.getElementById('logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+
+initAuth();
 </script>
 </body>
 </html>
