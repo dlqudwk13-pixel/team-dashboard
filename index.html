@@ -478,9 +478,9 @@ function renderPace(payload, _agg){
 
   const dayAgg = aggregate(payload.daily, 'day');
   const dayKeys = sortedKeys(dayAgg);
-  const todayKey = dayKeys[dayKeys.length-1];
+  const todayKey = state.cursor || dayKeys[dayKeys.length-1];
   const persons = [...new Set(payload.daily.map(r => r.person))];
-  const today = dayAgg.get(todayKey);
+  const today = dayAgg.get(todayKey) || { persons: new Map() };
 
   document.querySelector('#paceCard h2').firstChild.textContent =
     `${periodLabel(todayKey,'day')} 페이스 `;
