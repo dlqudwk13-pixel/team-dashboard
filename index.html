@@ -576,6 +576,8 @@ function startApp(){
   appStarted = true;
   document.getElementById('logoutBtn').style.display = '';
   setPeriod('day');
+  // 5분마다 자동으로 최신 데이터 다시 불러오기
+  setInterval(() => { state.data = {}; render(); }, 5 * 60 * 1000);
 }
 async function initAuth(){
   const { data:{ session } } = await sb.auth.getSession();
