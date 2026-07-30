@@ -153,7 +153,7 @@
     <div class="logo">G</div>
     <h2>성과 대시보드</h2>
     <p>허용된 계정만 볼 수 있어요</p>
-    <input type="email" id="loginEmail" placeholder="이메일" autocomplete="username" required />
+    <input type="text" id="loginEmail" placeholder="아이디" autocomplete="username" required />
     <input type="password" id="loginPw" placeholder="비밀번호" autocomplete="current-password" required />
     <button type="submit" id="loginBtn">로그인</button>
     <div class="login-err" id="loginErr"></div>
@@ -585,7 +585,8 @@ async function initAuth(){
 }
 async function doLogin(e){
   e.preventDefault();
-  const email = document.getElementById('loginEmail').value.trim();
+  let email = document.getElementById('loginEmail').value.trim();
+  if (email && !email.includes('@')) email += '@team.co';  // 아이디만 입력하면 도메인 자동 추가
   const pw = document.getElementById('loginPw').value;
   const errEl = document.getElementById('loginErr');
   const btn = document.getElementById('loginBtn');
