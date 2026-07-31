@@ -359,7 +359,7 @@ CT.forEach(function(c){
 var dayKeys=Object.keys(byDay).sort(), monKeys=Object.keys(byMon).sort();
 var byOwner=OW.map(function(o,i){
   var c=0,b=0; CT.forEach(function(x){ if(x[2]===i){c++; if(x[3])b++;} });
-  var u=UP.filter(function(z){return z.owner===o;}).length;
+  var u=UP.filter(function(z){return z.owner===o&&z.up;}).length;
   return {o:o,c:c,b:b,u:u,r:c?b/c*100:0};
 }).filter(function(x){return x.c>0;}).sort(function(a,b){return b.r-a.r;});
 
