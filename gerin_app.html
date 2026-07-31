@@ -222,6 +222,16 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
                 <button class="btn" id="clrBtn">비우기</button>
               </div>
             </div>
+            <div class="card pad" style="margin-bottom:12px">
+              <div class="hd"><h2>여러 개 한번에</h2><span class="note" id="bulkSum"></span></div>
+              <div style="font-size:11.5px;color:var(--ink-3);margin-bottom:8px">위 <b>담당</b>·<b>관심 시술</b>이 아래 전체에 적용돼요.</div>
+              <textarea id="bulkIn" rows="5" placeholder="핸들을 줄바꿈으로 여러 개 붙여넣기 — @는 없어도 돼요&#10;예:&#10;dandell_e&#10;mmminjoo" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:8px;font-family:var(--mono);font-size:12.5px;resize:vertical"></textarea>
+              <div style="display:flex;gap:7px;margin-top:8px">
+                <button class="btn" id="bulkChk">검사</button>
+                <button class="btn pri" id="bulkSave" disabled>검사된 것 모두 등록</button>
+              </div>
+              <div id="bulkRes" style="margin-top:10px;max-height:280px;overflow:auto"></div>
+            </div>
             <div class="card pad">
               <div class="hd"><h2>오늘 등록</h2><span class="note" id="todayN">0건</span></div>
               <div id="todayList"><div class="empty">아직 등록한 건이 없습니다.</div></div>
@@ -314,7 +324,7 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
   </div>
 </div>
 
-<script>window.__DATA__={"owners":["김성광","김수아","김지수","윤설아","윤예지","이승혜","정훈","지성경"],"handles":[],"contacts":[],"blacklist":[],"uploads":[]};</script>
+<script>window.__DATA__={"owners":["김수아","김지수","윤설아","윤예지","지성경"],"handles":[],"contacts":[],"blacklist":[],"uploads":[]};</script>
 <script>
 window.__APP__=function(){
 "use strict";
@@ -490,6 +500,57 @@ function bindEntry(){
       return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">'+esc(a.h)+'</span><span class="tag">'+esc(a.t)+'</span><span style="margin-left:auto;font-size:11.5px;color:var(--ink-3)">'+esc(a.o)+'</span>'+(a.st==="warn"?'<span class="tag wn">중복 확인</span>':"")+'</div>';}).join("");
     $("#hIn").value=""; check("");
   });
+
+  /* ═══ 일괄 검사·등록 ═══ */
+  function _verdict(q,oi){
+    var i=HS.indexOf(q), L=i>=0?(IDX[i]||[]):[];
+    var bl=blMap[q], lastOther=null,lastSelf=null;
+    L.forEach(function(c){ if(c[2]===oi){ if(!lastSelf||c[1]>lastSelf[1])lastSelf=c; } else if(!lastOther||c[1]>lastOther[1]) lastOther=c; });
+    if(bl) return {h:q,st:"stop",msg:"블랙리스트"+(bl.reason?" · "+bl.reason:"")};
+    if(lastOther&&days(lastOther[1],TODAY)<=CD.own) return {h:q,st:"warn",msg:OW[lastOther[2]]+" 담당 "+days(lastOther[1],TODAY)+"일 전"};
+    if(lastSelf&&days(lastSelf[1],TODAY)<=CD.self) return {h:q,st:"warn",msg:"본인 "+days(lastSelf[1],TODAY)+"일 전 재컨텍"};
+    if(L.length) return {h:q,st:"ok",msg:L.length+"회 이력 · 쿨다운 경과"};
+    return {h:q,st:"ok",msg:"신규 계정"};
+  }
+  var _bulk=[];
+  function _bulkCheck(){
+    function _nh(s){ s=(s||"").trim().toLowerCase(); var m=s.match(/instagram\.com\/([^\/?#]+)/); if(m)s=m[1]; return s.replace(/^@/,"").replace(/\/+$/,""); }
+    var lines=($("#bulkIn").value||"").split(/[\s,]+/).map(_nh).filter(Boolean);
+    var seen={},list=[]; lines.forEach(function(h){ if(!seen[h]){seen[h]=1;list.push(h);} });
+    var oi=+$("#oIn").value;
+    _bulk=list.map(function(h){ return _verdict(h,oi); });
+    var ok=_bulk.filter(function(x){return x.st!=="stop";}).length;
+    var wn=_bulk.filter(function(x){return x.st==="warn";}).length;
+    var sp=_bulk.filter(function(x){return x.st==="stop";}).length;
+    $("#bulkSum").textContent=_bulk.length+"개 · 등록가능 "+ok+" (경고 "+wn+") · 차단 "+sp;
+    $("#bulkRes").innerHTML=_bulk.map(function(x){
+      var s=x.st==="stop"?{t:"차단",bg:"#fdeaea",c:"#c0392b"}:x.st==="warn"?{t:"경고",bg:"#fff3df",c:"#b8791b"}:{t:"등록가능",bg:"#e7f6ee",c:"#0e7a5f"};
+      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">@'+esc(x.h)+'</span><span style="margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+s.bg+';color:'+s.c+'">'+s.t+'</span><span style="font-size:11px;color:var(--ink-3);min-width:110px;text-align:right">'+esc(x.msg)+'</span></div>';
+    }).join("");
+    $("#bulkSave").disabled=(ok===0);
+  }
+  function _renderToday(){
+    $("#todayN").textContent=todayAdded.length+"건";
+    $("#todayList").innerHTML=todayAdded.map(function(a){ return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">'+esc(a.h)+'</span><span class="tag">'+esc(a.t)+'</span><span style="margin-left:auto;font-size:11.5px;color:var(--ink-3)">'+esc(a.o)+'</span>'+(a.st==="warn"?'<span class="tag wn">중복 확인</span>':"")+'</div>';}).join("");
+  }
+  function _bulkSave(){
+    var oi=+$("#oIn").value, proc=$("#tIn").value;
+    var save=_bulk.filter(function(x){return x.st!=="stop";});
+    if(!save.length) return;
+    var rows=save.map(function(x){ return {handle:x.h,owner:OW[oi],date:TODAY,reserve:0,procedure:proc,memo:""}; });
+    var b=$("#bulkSave"); b.disabled=true; b.textContent="등록 중…";
+    function done(){
+      save.forEach(function(x){ var hi=HS.indexOf(x.h); if(hi<0){hi=HS.length;HS.push(x.h);} var rec=[hi,TODAY,oi,0,""]; CT.push(rec); if(IDX[hi])IDX[hi].push(rec); else IDX[hi]=[rec]; todayAdded.unshift({h:x.h,o:OW[oi],t:proc,st:x.st}); });
+      _renderToday();
+      $("#bulkIn").value=""; $("#bulkRes").innerHTML=""; $("#bulkSum").textContent=""; _bulk=[]; b.textContent="검사된 것 모두 등록";
+      alert(save.length+"건 등록 완료!");
+    }
+    if(window._sb){ window._sb.from("contacts").insert(rows).then(function(r){ if(r.error){ alert("저장 실패: "+r.error.message); b.disabled=false; b.textContent="검사된 것 모두 등록"; return; } done(); }); }
+    else { done(); }
+  }
+  var _bc=$("#bulkChk"), _bs=$("#bulkSave");
+  if(_bc) _bc.addEventListener("click",_bulkCheck);
+  if(_bs) _bs.addEventListener("click",_bulkSave);
 }
 
 /* ══ upload ══ */
@@ -630,7 +691,7 @@ $("#meNm").textContent=OW[ME]; $("#meAv").textContent=OW[ME][0];
     var rows=await loadAll('contacts');
     var hmap={},handles=[];
     function hi(h){ if(!(h in hmap)){hmap[h]=handles.length;handles.push(h);} return hmap[h]; }
-    var contacts=rows.map(function(r){ return [hi(r.handle), r.date, Math.max(0,owners.indexOf(r.owner)), r.reserve?1:0, r.memo||""]; });
+    var contacts=[]; rows.forEach(function(r){ var oi=owners.indexOf(r.owner); if(oi<0) return; contacts.push([hi(r.handle), r.date, oi, r.reserve?1:0, r.memo||""]); });
     var bl=await loadAll('blacklist');
     var blacklist=bl.map(function(b){ return {h:b.handle,name:b.name,phone:b.phone,date:b.date,reason:b.reason,tier:b.tier}; });
     window.__DATA__={owners:owners,handles:handles,contacts:contacts,blacklist:blacklist,uploads:[]};
