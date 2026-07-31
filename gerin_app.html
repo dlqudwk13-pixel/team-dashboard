@@ -694,7 +694,9 @@ $("#meNm").textContent=OW[ME]; $("#meAv").textContent=OW[ME][0];
     var contacts=[]; rows.forEach(function(r){ var oi=owners.indexOf(r.owner); if(oi<0) return; contacts.push([hi(r.handle), r.date, oi, r.reserve?1:0, r.memo||""]); });
     var bl=await loadAll('blacklist');
     var blacklist=bl.map(function(b){ return {h:b.handle,name:b.name,phone:b.phone,date:b.date,reason:b.reason,tier:b.tier}; });
-    window.__DATA__={owners:owners,handles:handles,contacts:contacts,blacklist:blacklist,uploads:[]};
+    var ups=await loadAll('uploads');
+    var uploads=ups.filter(function(u){ return owners.indexOf(u.owner)>=0; }).map(function(u){ return {name:u.name,phone:u.phone,cat:u.cat,item:u.item,visit:u.visit,op:u.op,chk1:u.chk1,up:u.up,chk2:u.chk2,owner:u.owner,views:u.views,grade:u.grade}; });
+    window.__DATA__={owners:owners,handles:handles,contacts:contacts,blacklist:blacklist,uploads:uploads};
     ov.remove();
     window.__APP__();
   }
