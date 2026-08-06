@@ -329,7 +329,7 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
 window.__APP__=function(){
 "use strict";
 var D=window.__DATA__, OW=D.owners, HS=D.handles, CT=D.contacts, BL=D.blacklist, UP=D.uploads;
-var CD={own:90,self:30}, ME=OW.indexOf("지성경")>=0?OW.indexOf("지성경"):0;
+var CD={own:90,self:30}, ME=(function(){var _m=OW.indexOf(window.__ME__||"지성경");return _m<0?0:_m;})();
 var TODAY=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Seoul"});
 var blMap={}; BL.forEach(function(b){blMap[b.h]=b;});
 var $=function(s){return document.querySelector(s);};
@@ -664,17 +664,59 @@ $("#meNm").textContent=OW[ME]; $("#meAv").textContent=OW[ME][0];
   var KEY='sb_publishable_6GAND6L5YdhOroKzixthEg_7Ad7efx5';
   var sb=window.supabase.createClient(URL,KEY);
   window._sb=sb;
+  var mode='login';
+
   var ov=document.createElement('div');
   ov.id='__login';
   ov.style.cssText='position:fixed;inset:0;background:#0f1e17;z-index:99999;display:grid;place-items:center;font-family:Pretendard,-apple-system,sans-serif';
-  ov.innerHTML='<form id="__lf" style="background:#fff;padding:28px 24px;border-radius:16px;width:320px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35)">'
-    +'<div style="font-size:19px;font-weight:800;margin-bottom:4px">기린 인플팀</div>'
-    +'<div style="font-size:13px;color:#8a8a8a;margin-bottom:18px">허용된 계정만 이용할 수 있어요</div>'
-    +'<input id="__id" placeholder="아이디" autocomplete="username" style="width:100%;box-sizing:border-box;padding:12px;margin-bottom:9px;border:1px solid #dcdcdc;border-radius:9px;font-size:15px">'
-    +'<input id="__pw" type="password" placeholder="비밀번호" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:12px;margin-bottom:9px;border:1px solid #dcdcdc;border-radius:9px;font-size:15px">'
-    +'<button id="__lb" type="submit" style="width:100%;padding:12px;border:0;border-radius:9px;background:#0e7a5f;color:#fff;font-weight:700;font-size:15px;cursor:pointer">로그인</button>'
-    +'<div id="__le" style="color:#d33;font-size:12.5px;min-height:16px;margin-top:9px"></div></form>';
   document.body.appendChild(ov);
+  function render(){
+    ov.innerHTML='<form id="__lf" style="background:#fff;padding:28px 24px;border-radius:16px;width:330px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35)">'
+      +'<div style="font-size:19px;font-weight:800;margin-bottom:4px">기린 인플팀</div>'
+      +'<div style="font-size:13px;color:#8a8a8a;margin-bottom:18px">'+(mode==="login"?"이름과 비밀번호로 로그인":"이름·비밀번호를 정해 계정을 만드세요")+'</div>'
+      +'<input id="__nm" placeholder="이름" autocomplete="username" style="width:100%;box-sizing:border-box;padding:12px;margin-bottom:9px;border:1px solid #dcdcdc;border-radius:9px;font-size:15px">'
+      +'<input id="__pw" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="'+(mode==="login"?"current-password":"new-password")+'" style="width:100%;box-sizing:border-box;padding:12px;margin-bottom:9px;border:1px solid #dcdcdc;border-radius:9px;font-size:15px">'
+      +'<button id="__lb" type="submit" style="width:100%;padding:12px;border:0;border-radius:9px;background:#0e7a5f;color:#fff;font-weight:700;font-size:15px;cursor:pointer">'+(mode==="login"?"로그인":"계정 만들기")+'</button>'
+      +'<div id="__le" style="color:#d33;font-size:12.5px;min-height:16px;margin-top:9px"></div>'
+      +'<div id="__tg" style="font-size:12.5px;color:#0e7a5f;margin-top:6px;cursor:pointer">'+(mode==="login"?"처음이신가요? 계정 만들기":"이미 계정이 있어요 → 로그인")+'</div>'
+      +'</form>';
+    document.getElementById('__lf').addEventListener('submit',submit);
+    document.getElementById('__tg').addEventListener('click',function(){ mode=(mode==="login"?"signup":"login"); render(); });
+  }
+  async function lookupEmail(name){
+    var r=await sb.from('members').select('email').eq('name',name).maybeSingle();
+    return (r.data&&r.data.email)||null;
+  }
+  async function submit(e){
+    e.preventDefault();
+    var name=document.getElementById('__nm').value.trim();
+    var pw=document.getElementById('__pw').value;
+    var er=document.getElementById('__le'), b=document.getElementById('__lb');
+    er.textContent='';
+    if(!name){ er.textContent='이름을 입력해 주세요.'; return; }
+    b.disabled=true;
+    if(mode==='signup'){
+      b.textContent='만드는 중…';
+      var email=await lookupEmail(name);
+      if(!email){ email='m'+Date.now()+'@team.co'; }
+      var s=await sb.auth.signUp({email:email,password:pw});
+      if(s.error){
+        if(/registered|exists/i.test(s.error.message)){ er.textContent='이미 가입된 이름이에요. 로그인해 주세요.'; mode='login'; render(); return; }
+        er.textContent='가입 실패: '+s.error.message; b.disabled=false; b.textContent='계정 만들기'; return;
+      }
+      if(!s.data.session){ var l=await sb.auth.signInWithPassword({email:email,password:pw}); if(l.error){ er.textContent='가입됨. 다시 로그인해 주세요.'; mode='login'; render(); return; } }
+      try{ await sb.from('members').upsert({name:name,email:email},{onConflict:'name'}); }catch(e2){}
+      b.textContent='불러오는 중…'; boot().catch(function(err){b.disabled=false;b.textContent='계정 만들기';er.textContent='데이터 로드 실패: '+err.message;});
+      return;
+    }
+    b.textContent='로그인 중…';
+    var email2=await lookupEmail(name);
+    if(!email2){ er.textContent='미가입 이름이에요. "계정 만들기"로 먼저 가입하세요.'; b.disabled=false; b.textContent='로그인'; return; }
+    var r=await sb.auth.signInWithPassword({email:email2,password:pw});
+    if(r.error){ er.textContent='비밀번호가 올바르지 않아요.'; b.disabled=false; b.textContent='로그인'; return; }
+    b.textContent='불러오는 중…'; boot().catch(function(err){b.disabled=false;b.textContent='로그인';er.textContent='데이터 로드 실패: '+err.message;});
+  }
+
   async function loadAll(t){
     var out=[],from=0,size=1000;
     while(true){
@@ -687,7 +729,12 @@ $("#meNm").textContent=OW[ME]; $("#meAv").textContent=OW[ME][0];
     return out;
   }
   async function boot(){
-    var owners=window.__DATA__.owners;
+    var mem=await loadAll('members');
+    var active=mem.filter(function(m){return m.active!==false;});
+    var owners=active.map(function(m){return m.name;});
+    if(!owners.length) owners=window.__DATA__.owners;   // 안전장치
+    var emailName={}; mem.forEach(function(m){ emailName[m.email]=m.name; });
+    try{ var _u=await sb.auth.getUser(); var _e=(_u.data.user&&_u.data.user.email)||""; window.__ME__=emailName[_e]||null; }catch(e){}
     var rows=await loadAll('contacts');
     var hmap={},handles=[];
     function hi(h){ if(!(h in hmap)){hmap[h]=handles.length;handles.push(h);} return hmap[h]; }
@@ -699,21 +746,13 @@ $("#meNm").textContent=OW[ME]; $("#meAv").textContent=OW[ME][0];
     window.__DATA__={owners:owners,handles:handles,contacts:contacts,blacklist:blacklist,uploads:uploads};
     ov.remove();
     window.__APP__();
+    var lo=document.createElement("button"); lo.textContent="로그아웃";
+    lo.style.cssText="position:fixed;bottom:12px;right:12px;z-index:9998;font-size:11px;padding:6px 11px;border:1px solid #d0d0d0;border-radius:8px;background:#fff;color:#555;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.12)";
+    lo.onclick=function(){ sb.auth.signOut().then(function(){location.reload();}); };
+    document.body.appendChild(lo);
   }
-  async function tryLogin(e){
-    if(e)e.preventDefault();
-    var id=document.getElementById('__id').value.trim();
-    if(id&&id.indexOf('@')<0) id+='@team.co';
-    var pw=document.getElementById('__pw').value;
-    var er=document.getElementById('__le'), b=document.getElementById('__lb');
-    er.textContent='';b.disabled=true;b.textContent='로그인 중…';
-    var r=await sb.auth.signInWithPassword({email:id,password:pw});
-    if(r.error){b.disabled=false;b.textContent='로그인';er.textContent='아이디 또는 비밀번호가 올바르지 않아요.';return;}
-    b.textContent='불러오는 중…';
-    boot().catch(function(err){b.disabled=false;b.textContent='로그인';er.textContent='데이터 로드 실패: '+err.message;});
-  }
-  document.getElementById('__lf').addEventListener('submit',tryLogin);
-  sb.auth.getSession().then(function(r){ if(r.data.session){ boot().catch(function(e){ov.querySelector('#__le').textContent='데이터 로드 실패: '+e.message;}); } });
+  render();
+  sb.auth.getSession().then(function(r){ if(r.data.session){ boot().catch(function(e){var le=document.getElementById('__le'); if(le)le.textContent='데이터 로드 실패: '+e.message;}); } });
 })();
 </script>
 </body>
