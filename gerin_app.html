@@ -426,7 +426,11 @@ function _renderPer(type,ids){
   var map=_agg(type), keys=Object.keys(map).sort();
   var tb=$("#"+ids.tbl);
   if(!keys.length){ tb.innerHTML=_ppTbl(null); $("#"+ids.note).textContent=""; return; }
-  if(keys.indexOf(_perCur[type])<0) _perCur[type]=keys[keys.length-1];
+  if(keys.indexOf(_perCur[type])<0){
+    var _def=null;
+    for(var _ki=keys.length-1;_ki>=0;_ki--){ var _a=map[keys[_ki]],_t=0; for(var _o=0;_o<_a.length;_o++)_t+=_a[_o].c; if(_t>0){_def=keys[_ki];break;} }
+    _perCur[type]=_def||keys[keys.length-1];
+  }
   var i=keys.indexOf(_perCur[type]);
   tb.innerHTML=_ppTbl(map[_perCur[type]]); $("#"+ids.note).textContent=_plabel(type,_perCur[type]);
   var pv=$("#"+ids.prev), nx=$("#"+ids.next);
@@ -556,7 +560,7 @@ function bindEntry(){
   $("#saveBtn").addEventListener("click",function(){
     if(!picked||picked.st==="stop")return;
     var _oi=+$("#oIn").value,_h=picked.h,_pc=$("#tIn").value;
-    if(window._sb){window._sb.from("contacts").insert({handle:_h,owner:OW[_oi],date:TODAY,reserve:0,procedure:_pc,memo:""}).then(function(rr){if(rr.error)alert("저장 실패: "+rr.error.message);});}
+    if(window._sb){window._sb.from("contacts").insert({handle:_h,owner:OW[_oi],date:TODAY,reserve:0,procedure:_pc,memo:"",source:"app"}).then(function(rr){if(rr.error)alert("저장 실패: "+rr.error.message);});}
     var _hi=HS.indexOf(_h);if(_hi<0){_hi=HS.length;HS.push(_h);}var _rec=[_hi,TODAY,_oi,0,""];CT.push(_rec);if(IDX[_hi])IDX[_hi].push(_rec);else IDX[_hi]=[_rec];
     todayAdded.unshift({h:picked.h,o:OW[+$("#oIn").value],t:$("#tIn").value,st:picked.st});
     $("#todayN").textContent=todayAdded.length+"건";
@@ -601,7 +605,7 @@ function bindEntry(){
     var oi=+$("#oIn").value, proc=$("#tIn").value;
     var save=_bulk.filter(function(x){return x.st!=="stop";});
     if(!save.length) return;
-    var rows=save.map(function(x){ return {handle:x.h,owner:OW[oi],date:TODAY,reserve:0,procedure:proc,memo:""}; });
+    var rows=save.map(function(x){ return {handle:x.h,owner:OW[oi],date:TODAY,reserve:0,procedure:proc,memo:"",source:"app"}; });
     var b=$("#bulkSave"); b.disabled=true; b.textContent="등록 중…";
     function done(){
       save.forEach(function(x){ var hi=HS.indexOf(x.h); if(hi<0){hi=HS.length;HS.push(x.h);} var rec=[hi,TODAY,oi,0,""]; CT.push(rec); if(IDX[hi])IDX[hi].push(rec); else IDX[hi]=[rec]; todayAdded.unshift({h:x.h,o:OW[oi],t:proc,st:x.st}); });
