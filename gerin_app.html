@@ -194,6 +194,16 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
           <div style="padding:0 8px 8px"><table id="ownerTbl"></table></div>
         </div>
 
+        <div class="card" style="margin-top:14px">
+          <div class="pad" style="padding-bottom:6px"><div class="hd"><h2>개인별 주간 성과</h2><span class="note" id="weekNote"></span></div></div>
+          <div style="padding:0 8px 8px"><table id="weekTbl"></table></div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <div class="pad" style="padding-bottom:6px"><div class="hd"><h2>개인별 월간 성과</h2><span class="note" id="monNote"></span></div></div>
+          <div style="padding:0 8px 8px"><table id="monTbl"></table></div>
+        </div>
+
         <div class="card pad" style="margin-top:14px">
           <div class="hd"><h2>일간보고</h2><span class="note">자동 생성</span></div>
           <pre class="mono" id="report" style="font-size:12px;color:var(--ink-2);line-height:1.85;white-space:pre-wrap"></pre>
@@ -377,6 +387,27 @@ document.querySelectorAll(".rbtn").forEach(function(b){ b.addEventListener("clic
 
 /* ══ dashboard ══ */
 function kpi(l,v,f,cls){return '<div class="kpi'+(cls?" "+cls:"")+'"><div class="lb">'+l+'</div><div class="vl num">'+v+'</div><div class="ft">'+(f||"")+'</div></div>';}
+function renderPPP(){
+  function fmt(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+  function wkStart(ds){var d=new Date(ds+"T00:00:00");var off=(d.getDay()+6)%7;d.setDate(d.getDate()-off);return fmt(d);}
+  var ws=wkStart(TODAY), we=(function(){var d=new Date(ws+"T00:00:00");d.setDate(d.getDate()+6);return fmt(d);})();
+  var mo=TODAY.slice(0,7);
+  var wk=OW.map(function(){return {c:0,b:0};}), mn=OW.map(function(){return {c:0,b:0};});
+  CT.forEach(function(x){ var d=x[1],oi=x[2]; if(oi<0||oi>=OW.length)return;
+    if(d>=ws&&d<=we){ wk[oi].c++; if(x[3])wk[oi].b++; }
+    if(d.slice(0,7)===mo){ mn[oi].c++; if(x[3])mn[oi].b++; } });
+  function tbl(arr){
+    var rows=OW.map(function(o,i){return {o:o,c:arr[i].c,b:arr[i].b,r:arr[i].c?arr[i].b/arr[i].c*100:0};})
+      .filter(function(x){return x.c>0;}).sort(function(a,b){return b.c-a.c;});
+    if(!rows.length) return '<tbody><tr><td style="color:var(--ink-3)">아직 기록이 없어요</td></tr></tbody>';
+    return '<thead><tr><th>담당</th><th class="r">컨텍</th><th class="r">예약</th><th class="r">전환율</th></tr></thead><tbody>'+
+      rows.map(function(x){var c=x.r>=4?"var(--signal)":x.r<1?"var(--stop)":"inherit";
+        return '<tr><td>'+esc(x.o)+'</td><td class="r num">'+nf(x.c)+'</td><td class="r num">'+nf(x.b)+'</td><td class="r num" style="color:'+c+';font-weight:500">'+x.r.toFixed(1)+'%</td></tr>';}).join("")+'</tbody>';
+  }
+  $("#weekTbl").innerHTML=tbl(wk); $("#monTbl").innerHTML=tbl(mn);
+  $("#weekNote").textContent=ws.slice(5).replace("-","/")+" ~ "+we.slice(5).replace("-","/");
+  $("#monNote").textContent=mo;
+}
 function renderDash(){
   var last7=dayKeys.slice(-7), avg7=Math.round(last7.reduce(function(a,k){return a+byDay[k];},0)/last7.length);
   var jul=byMon["2026-07"]||{c:0,b:0}, jun=byMon["2026-06"]||{c:0,b:0};
@@ -651,7 +682,7 @@ function bindSet(){
 }
 
 fillSel(); rules(); tryList(); bindEntry(); bindSet();
-renderDash(); renderUpload(); renderDb(); renderRisk();
+renderDash(); renderPPP(); renderUpload(); renderDb(); renderRisk();
 $("#dbQ").addEventListener("input",renderDb);
 $("#dbF").addEventListener("change",renderDb);
 $("#dbS").addEventListener("change",renderDb);
