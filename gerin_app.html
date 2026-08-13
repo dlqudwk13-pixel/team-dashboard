@@ -281,6 +281,7 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
             <div><label class="fl">업로드일</label><input id="upUp" type="date" placeholder="" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
             <div><label class="fl">업로드 링크</label><input id="upLink" type="text" placeholder="https://instagram.com/reel/..." style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
           </div>
+          <div style="margin-top:10px;max-width:280px"><label class="fl">진행 단계</label><select id="upStage" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"><option value="0">예약확정</option><option value="1">시술완료</option><option value="2">1차 점검완료</option><option value="3">업로드완료</option><option value="4">성과집계</option></select></div>
           <div style="font-size:12px;color:var(--ink-3);margin:14px 0 6px;font-weight:700">성과 지표 (2주 점검 시 입력 — 넣으면 총점·등급 자동)</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
             <div><label class="fl">2주 조회수</label><input id="upViews" type="number" placeholder="0" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
@@ -532,14 +533,14 @@ function _upGrade(s){ return s>=90?'S':s>=80?'A':s>=70?'B':s>=60?'C':'D'; }
 function _upHasMetrics(m){ return !!(m.views||m.comments||m.impc||m.saves||m.shares||m.reposts||m.likes); }
 function _upRefreshScore(){ var m=_upMetrics(); if(!_upHasMetrics(m)){ $("#upScoreBox").textContent='—'; return; } var s=_upScore(m); $("#upScoreBox").innerHTML=s+'점 · <b>'+_upGrade(s)+'</b>'; }
 var _upEditId=null;
-function _upClear(){ ['upN','upP','upItem','upLink','upOp','upUp','upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(id){var e=$("#"+id);if(e)e.value='';}); $("#upScoreBox").textContent='—'; _upEditId=null; $("#upSaveBtn").textContent='업로드 등록'; var en=$("#upEditNote"); if(en)en.textContent=''; }
+function _upClear(){ ['upN','upP','upItem','upLink','upOp','upUp','upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(id){var e=$("#"+id);if(e)e.value='';}); $("#upScoreBox").textContent='—'; var _st=$("#upStage"); if(_st)_st.value='0'; _upEditId=null; $("#upSaveBtn").textContent='업로드 등록'; var en=$("#upEditNote"); if(en)en.textContent=''; }
 function _upRow(){
   var m=_upMetrics(), has=_upHasMetrics(m);
   var score=has?_upScore(m):null, grade=has?_upGrade(score):'';
   return {name:$("#upN").value.trim(),phone:$("#upP").value.trim(),cat:$("#upCat").value,item:$("#upItem").value.trim(),
     newrepeat:$("#upNew").value,op:$("#upOp").value.trim(),up:$("#upUp").value.trim(),link:$("#upLink").value.trim(),
     owner:OW[ME]||'',views:m.views?String(m.views):'',likes:m.likes||null,comments:m.comments||null,imp_comments:m.impc||null,
-    saves:m.saves||null,shares:m.shares||null,reposts:m.reposts||null,score:score,grade:grade,source:'app'};
+    saves:m.saves||null,shares:m.shares||null,reposts:m.reposts||null,score:score,grade:grade,stage:(function(){var e=$("#upStage");return e?parseInt(e.value,10):0;})(),source:'app'};
 }
 function _upSave(){
   if(!$("#upN").value.trim()){ alert('이름을 입력하세요.'); return; }
@@ -573,6 +574,7 @@ function _upEdit(id){
   $("#upItem").value=u.item||''; $("#upOp").value=u.op||''; $("#upUp").value=u.up||''; $("#upLink").value=u.link||'';
   $("#upViews").value=u.views||''; $("#upLikes").value=(u.likes==null?'':u.likes); $("#upComments").value=(u.comments==null?'':u.comments); $("#upImpc").value=(u.imp_comments==null?'':u.imp_comments);
   $("#upSaves").value=(u.saves==null?'':u.saves); $("#upShares").value=(u.shares==null?'':u.shares); $("#upReposts").value=(u.reposts==null?'':u.reposts);
+  var _st2=$("#upStage"); if(_st2)_st2.value=String(u.stage!=null&&u.stage!==""?u.stage:stage(u));
   _upRefreshScore();
   $("#upSaveBtn").textContent='수정 저장'; var en=$("#upEditNote"); if(en)en.textContent='· 수정 중: '+(u.name||'');
   var f=$("#upN"); if(f){ f.scrollIntoView({behavior:"smooth",block:"center"}); f.focus(); }
@@ -777,6 +779,7 @@ function bindEntry(){
 
 /* ══ upload ══ */
 function stage(u){
+  if(u&&u.stage!=null&&u.stage!==""){ var _s=+u.stage; if(!isNaN(_s)) return _s; }
   if(!u.op) return 0;
   if(!u.chk1) return 1;
   if(!u.up) return 2;
@@ -964,7 +967,7 @@ var _disp=window.__ME__||OW[ME]||""; $("#meNm").textContent=_disp; $("#meAv").te
     var bl=await loadAll('blacklist');
     var blacklist=bl.map(function(b){ return {h:b.handle,name:b.name,phone:b.phone,date:b.date,reason:b.reason,tier:b.tier}; });
     var ups=await loadAll('uploads');
-    var uploads=ups.filter(function(u){ return owners.indexOf(u.owner)>=0; }).map(function(u){ return {id:u.id,source:u.source,name:u.name,phone:u.phone,cat:u.cat,item:u.item,newrepeat:u.newrepeat,visit:u.visit,op:u.op,chk1:u.chk1,up:u.up,chk2:u.chk2,owner:u.owner,views:u.views,likes:u.likes,comments:u.comments,imp_comments:u.imp_comments,saves:u.saves,shares:u.shares,reposts:u.reposts,score:u.score,grade:u.grade,link:u.link}; });
+    var uploads=ups.filter(function(u){ return owners.indexOf(u.owner)>=0; }).map(function(u){ return {id:u.id,source:u.source,name:u.name,phone:u.phone,cat:u.cat,item:u.item,newrepeat:u.newrepeat,visit:u.visit,op:u.op,chk1:u.chk1,up:u.up,chk2:u.chk2,owner:u.owner,views:u.views,likes:u.likes,comments:u.comments,imp_comments:u.imp_comments,saves:u.saves,shares:u.shares,reposts:u.reposts,score:u.score,grade:u.grade,stage:u.stage,link:u.link}; });
     window.__DATA__={owners:owners,handles:handles,contacts:contacts,blacklist:blacklist,uploads:uploads};
     ov.remove();
     window.__APP__();
