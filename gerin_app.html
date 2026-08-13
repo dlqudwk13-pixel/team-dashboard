@@ -294,7 +294,12 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
           <div style="display:flex;gap:7px;margin-top:14px">
             <button class="btn pri" id="upSaveBtn">업로드 등록</button>
             <button class="btn" id="upClrBtn">비우기</button>
+            <span class="note" id="upEditNote" style="color:#b8791b;align-self:center"></span>
           </div>
+        </div>
+        <div class="card pad" style="margin-bottom:16px">
+          <div class="hd"><h2>내 업로드 관리</h2><span class="note">진행중인 건 클릭해서 수정</span></div>
+          <div id="myUpList"></div>
         </div>
         <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:16px" id="upKpi"></div>
         <div class="kb" id="kanban"></div>
@@ -525,26 +530,67 @@ function _upScore(m){ var s=0; s+=(m.comments>0)?Math.min((m.impc/m.comments)*30
 function _upGrade(s){ return s>=90?'S':s>=80?'A':s>=70?'B':s>=60?'C':'D'; }
 function _upHasMetrics(m){ return !!(m.views||m.comments||m.impc||m.saves||m.shares||m.reposts||m.likes); }
 function _upRefreshScore(){ var m=_upMetrics(); if(!_upHasMetrics(m)){ $("#upScoreBox").textContent='—'; return; } var s=_upScore(m); $("#upScoreBox").innerHTML=s+'점 · <b>'+_upGrade(s)+'</b>'; }
-function _upClear(){ ['upN','upP','upItem','upLink','upOp','upUp','upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(id){var e=$("#"+id);if(e)e.value='';}); $("#upScoreBox").textContent='—'; }
-function _upSave(){
-  var name=$("#upN").value.trim();
-  if(!name){ alert('이름을 입력하세요.'); return; }
+var _upEditId=null;
+function _upClear(){ ['upN','upP','upItem','upLink','upOp','upUp','upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(id){var e=$("#"+id);if(e)e.value='';}); $("#upScoreBox").textContent='—'; _upEditId=null; $("#upSaveBtn").textContent='업로드 등록'; var en=$("#upEditNote"); if(en)en.textContent=''; }
+function _upRow(){
   var m=_upMetrics(), has=_upHasMetrics(m);
   var score=has?_upScore(m):null, grade=has?_upGrade(score):'';
-  var owner=OW[ME]||'';
-  var row={name:name,phone:$("#upP").value.trim(),cat:$("#upCat").value,item:$("#upItem").value.trim(),
+  return {name:$("#upN").value.trim(),phone:$("#upP").value.trim(),cat:$("#upCat").value,item:$("#upItem").value.trim(),
     newrepeat:$("#upNew").value,op:$("#upOp").value.trim(),up:$("#upUp").value.trim(),link:$("#upLink").value.trim(),
-    owner:owner,views:m.views?String(m.views):'',likes:m.likes||null,comments:m.comments||null,imp_comments:m.impc||null,
+    owner:OW[ME]||'',views:m.views?String(m.views):'',likes:m.likes||null,comments:m.comments||null,imp_comments:m.impc||null,
     saves:m.saves||null,shares:m.shares||null,reposts:m.reposts||null,score:score,grade:grade,source:'app'};
-  var b=$("#upSaveBtn"); b.disabled=true; b.textContent='등록 중…';
-  window._sb.from('uploads').insert(row).then(function(r){
-    b.disabled=false; b.textContent='업로드 등록';
-    if(r.error){ alert('저장 실패: '+r.error.message); return; }
-    UP.push({name:name,phone:row.phone,cat:row.cat,item:row.item,visit:'',op:row.op,chk1:'',up:row.up,chk2:'',owner:owner,views:row.views,grade:grade,link:row.link});
-    renderUpload(); renderUploadStats(); renderDash();
-    _upClear();
-    alert('업로드 등록 완료! (총점 '+(has?score:'-')+' · 등급 '+(grade||'-')+')');
-  });
+}
+function _upSave(){
+  if(!$("#upN").value.trim()){ alert('이름을 입력하세요.'); return; }
+  var row=_upRow();
+  var b=$("#upSaveBtn"); b.disabled=true; b.textContent='저장 중…';
+  if(_upEditId){
+    var eid=_upEditId;
+    window._sb.from('uploads').update(row).eq('id',eid).then(function(r){
+      b.disabled=false;
+      if(r.error){ b.textContent='수정 저장'; alert('수정 실패: '+r.error.message); return; }
+      for(var i=0;i<UP.length;i++){ if(UP[i].id==eid){ for(var k in row) UP[i][k]=row[k]; break; } }
+      _upClear(); renderUpload(); renderUploadStats(); renderDash(); renderMyUploads();
+      alert('수정 완료!');
+    });
+  } else {
+    window._sb.from('uploads').insert(row).select().then(function(r){
+      b.disabled=false; b.textContent='업로드 등록';
+      if(r.error){ alert('저장 실패: '+r.error.message); return; }
+      var nid=(r.data&&r.data[0]&&r.data[0].id)||null;
+      UP.push(Object.assign({id:nid,visit:'',chk1:'',chk2:''}, row));
+      _upClear(); renderUpload(); renderUploadStats(); renderDash(); renderMyUploads();
+      alert('업로드 등록 완료!');
+    });
+  }
+}
+window._upEdit=function(id){
+  var u=null; for(var i=0;i<UP.length;i++){ if(UP[i].id==id){u=UP[i];break;} }
+  if(!u) return;
+  _upEditId=id;
+  $("#upN").value=u.name||''; $("#upP").value=u.phone||''; $("#upCat").value=u.cat||'쁘띠'; $("#upNew").value=u.newrepeat||'신규';
+  $("#upItem").value=u.item||''; $("#upOp").value=u.op||''; $("#upUp").value=u.up||''; $("#upLink").value=u.link||'';
+  $("#upViews").value=u.views||''; $("#upLikes").value=(u.likes==null?'':u.likes); $("#upComments").value=(u.comments==null?'':u.comments); $("#upImpc").value=(u.imp_comments==null?'':u.imp_comments);
+  $("#upSaves").value=(u.saves==null?'':u.saves); $("#upShares").value=(u.shares==null?'':u.shares); $("#upReposts").value=(u.reposts==null?'':u.reposts);
+  _upRefreshScore();
+  $("#upSaveBtn").textContent='수정 저장'; var en=$("#upEditNote"); if(en)en.textContent='· 수정 중: '+(u.name||'');
+  window.scrollTo(0,0);
+};
+function renderMyUploads(){
+  var el=$("#myUpList"); if(!el) return;
+  var me=OW[ME]||'';
+  var mine=UP.filter(function(u){return u.source==='app' && u.owner===me;});
+  var S=["예약확정","시술완료","1차점검","업로드완료","성과집계"];
+  if(!mine.length){ el.innerHTML='<div style="color:var(--ink-3);font-size:13px;padding:6px 0">아직 등록한 업로드가 없어요. 위에서 등록하세요.</div>'; return; }
+  mine.sort(function(a,b){return (b.up||b.op||'').localeCompare(a.up||a.op||'');});
+  el.innerHTML=mine.map(function(u){
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)">'+
+      '<span style="font-weight:700;font-size:13.5px">'+esc(u.name||'-')+'</span>'+
+      '<span class="tag">'+esc(u.item||'')+'</span>'+
+      '<span style="font-size:11.5px;color:var(--ink-3)">'+S[stage(u)]+(u.grade?' · '+u.grade:'')+'</span>'+
+      '<button class="btn sm" style="margin-left:auto;padding:3px 12px" onclick="window._upEdit('+u.id+')">수정</button>'+
+    '</div>';
+  }).join('');
 }
 function renderDash(){
   var last7=dayKeys.slice(-7), avg7=Math.round(last7.reduce(function(a,k){return a+byDay[k];},0)/last7.length);
@@ -824,7 +870,7 @@ function bindSet(){
 }
 
 fillSel(); rules(); tryList(); bindEntry(); bindSet();
-renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderDb(); renderRisk();
+renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); renderDb(); renderRisk();
 $("#dbQ").addEventListener("input",renderDb);
 $("#dbF").addEventListener("change",renderDb);
 $("#dbS").addEventListener("change",renderDb);
@@ -915,7 +961,7 @@ $("#meNm").textContent=OW[ME]; $("#meAv").textContent=OW[ME][0];
     var bl=await loadAll('blacklist');
     var blacklist=bl.map(function(b){ return {h:b.handle,name:b.name,phone:b.phone,date:b.date,reason:b.reason,tier:b.tier}; });
     var ups=await loadAll('uploads');
-    var uploads=ups.filter(function(u){ return owners.indexOf(u.owner)>=0; }).map(function(u){ return {name:u.name,phone:u.phone,cat:u.cat,item:u.item,visit:u.visit,op:u.op,chk1:u.chk1,up:u.up,chk2:u.chk2,owner:u.owner,views:u.views,grade:u.grade,link:u.link}; });
+    var uploads=ups.filter(function(u){ return owners.indexOf(u.owner)>=0; }).map(function(u){ return {id:u.id,source:u.source,name:u.name,phone:u.phone,cat:u.cat,item:u.item,newrepeat:u.newrepeat,visit:u.visit,op:u.op,chk1:u.chk1,up:u.up,chk2:u.chk2,owner:u.owner,views:u.views,likes:u.likes,comments:u.comments,imp_comments:u.imp_comments,saves:u.saves,shares:u.shares,reposts:u.reposts,score:u.score,grade:u.grade,link:u.link}; });
     window.__DATA__={owners:owners,handles:handles,contacts:contacts,blacklist:blacklist,uploads:uploads};
     ov.remove();
     window.__APP__();
