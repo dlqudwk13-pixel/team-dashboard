@@ -564,7 +564,7 @@ function _upSave(){
     });
   }
 }
-window._upEdit=function(id){
+function _upEdit(id){
   var u=null; for(var i=0;i<UP.length;i++){ if(UP[i].id==id){u=UP[i];break;} }
   if(!u) return;
   _upEditId=id;
@@ -574,8 +574,8 @@ window._upEdit=function(id){
   $("#upSaves").value=(u.saves==null?'':u.saves); $("#upShares").value=(u.shares==null?'':u.shares); $("#upReposts").value=(u.reposts==null?'':u.reposts);
   _upRefreshScore();
   $("#upSaveBtn").textContent='수정 저장'; var en=$("#upEditNote"); if(en)en.textContent='· 수정 중: '+(u.name||'');
-  window.scrollTo(0,0);
-};
+  var f=$("#upN"); if(f){ f.scrollIntoView({behavior:"smooth",block:"center"}); f.focus(); }
+}
 function renderMyUploads(){
   var el=$("#myUpList"); if(!el) return;
   var me=OW[ME]||'';
@@ -588,7 +588,7 @@ function renderMyUploads(){
       '<span style="font-weight:700;font-size:13.5px">'+esc(u.name||'-')+'</span>'+
       '<span class="tag">'+esc(u.item||'')+'</span>'+
       '<span style="font-size:11.5px;color:var(--ink-3)">'+S[stage(u)]+(u.grade?' · '+u.grade:'')+'</span>'+
-      '<button class="btn sm" style="margin-left:auto;padding:3px 12px" onclick="window._upEdit('+u.id+')">수정</button>'+
+      '<button class="btn sm mu-edit" data-id="'+u.id+'" style="margin-left:auto;padding:3px 12px">수정</button>'+
     '</div>';
   }).join('');
 }
@@ -870,7 +870,7 @@ function bindSet(){
 }
 
 fillSel(); rules(); tryList(); bindEntry(); bindSet();
-renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); renderDb(); renderRisk();
+renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); var _mul=document.getElementById('myUpList'); if(_mul)_mul.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-id]'):null; if(b)_upEdit(b.getAttribute('data-id')); }); renderDb(); renderRisk();
 $("#dbQ").addEventListener("input",renderDb);
 $("#dbF").addEventListener("change",renderDb);
 $("#dbS").addEventListener("change",renderDb);
