@@ -268,11 +268,56 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
 
       <!-- ── 업로드 관리 ── -->
       <section id="v-upload" class="hide">
+        <div class="card pad" style="margin-bottom:16px">
+          <div class="hd"><h2>업로드 등록</h2><span class="note" id="upFormOwner"></span></div>
+          <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+            <div><label class="fl">이름</label><input id="upN" type="text" placeholder="인플루언서 이름" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">연락처</label><input id="upP" type="text" placeholder="010-..." style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">성형/쁘띠</label><select id="upCat" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"><option>쁘띠</option><option>성형</option></select></div>
+            <div><label class="fl">신규/기존</label><select id="upNew" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"><option>신규</option><option>기존</option></select></div>
+            <div><label class="fl">시술 항목</label><input id="upItem" type="text" placeholder="예: 갸름주사" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">시술일</label><input id="upOp" type="date" placeholder="" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">업로드일</label><input id="upUp" type="date" placeholder="" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">업로드 링크</label><input id="upLink" type="text" placeholder="https://instagram.com/reel/..." style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+          </div>
+          <div style="font-size:12px;color:var(--ink-3);margin:14px 0 6px;font-weight:700">성과 지표 (2주 점검 시 입력 — 넣으면 총점·등급 자동)</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <div><label class="fl">2주 조회수</label><input id="upViews" type="number" placeholder="0" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">좋아요</label><input id="upLikes" type="number" placeholder="0" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">총 댓글</label><input id="upComments" type="number" placeholder="0" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">중요 댓글</label><input id="upImpc" type="number" placeholder="0" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">저장</label><input id="upSaves" type="number" placeholder="0" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">공유</label><input id="upShares" type="number" placeholder="0" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">리포스트</label><input id="upReposts" type="number" placeholder="0" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">총점·등급</label><div id="upScoreBox" style="padding:9px 0;font-weight:800;font-size:15px">—</div></div>
+          </div>
+          <div style="display:flex;gap:7px;margin-top:14px">
+            <button class="btn pri" id="upSaveBtn">업로드 등록</button>
+            <button class="btn" id="upClrBtn">비우기</button>
+          </div>
+        </div>
         <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:16px" id="upKpi"></div>
         <div class="kb" id="kanban"></div>
         <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:14px;align-items:start">
           <div class="card pad"><div class="hd"><h2>시술 항목</h2></div><div id="itemBars"></div></div>
           <div class="card pad"><div class="hd"><h2>단계별 소요일</h2><span class="note">중앙값</span></div><div id="leadTime"></div></div>
+        </div>
+
+        <div class="card pad" style="margin-top:14px">
+          <div class="hd"><h2>업로드 통계</h2>
+            <span style="display:flex;align-items:center;gap:8px">
+              <span style="display:inline-flex;gap:2px;background:#eef1f0;border-radius:8px;padding:2px">
+                <button class="btn sm" id="upSeg_day" style="padding:3px 11px;background:none;border:0">일</button>
+                <button class="btn sm" id="upSeg_week" style="padding:3px 11px;background:none;border:0">주</button>
+                <button class="btn sm" id="upSeg_month" style="padding:3px 11px;background:none;border:0">월</button>
+              </span>
+              <button class="btn sm" id="upStatPrev" style="padding:2px 9px">◀</button>
+              <span class="note" id="upStatNote"></span>
+              <button class="btn sm" id="upStatNext" style="padding:2px 9px">▶</button>
+            </span>
+          </div>
+          <div id="upGradeDist" style="margin-top:8px"></div>
+          <div style="overflow-x:auto"><table id="upStatTbl"></table></div>
         </div>
       </section>
 
@@ -442,6 +487,64 @@ function renderPPP(){
   _renderPer("day",{tbl:"dayTbl",note:"dayNote",prev:"dayPrev",next:"dayNext"});
   _renderPer("week",{tbl:"weekTbl",note:"weekNote",prev:"weekPrev",next:"weekNext"});
   _renderPer("month",{tbl:"monTbl",note:"monNote",prev:"monPrev",next:"monNext"});
+}
+var _upType='month', _upCur=null;
+function _upKey(type,ds){ ds=_nd2(ds); if(!ds)return null; if(type==='day')return ds; if(type==='week')return _wkStart(ds); return ds.slice(0,7); }
+function renderUploadStats(){
+  var map={};
+  UP.forEach(function(u){
+    if(!u.up) return;
+    var k=_upKey(_upType,u.up); if(!k) return;
+    if(!map[k]) map[k]={tot:{u:0,S:0,A:0,B:0,C:0,D:0,none:0}, own:{}};
+    var m=map[k], o=u.owner||'(미지정)';
+    if(!m.own[o]) m.own[o]={u:0,S:0,A:0,B:0,C:0,D:0,none:0};
+    m.tot.u++; m.own[o].u++;
+    var g=(u.grade||'').toUpperCase();
+    if(['S','A','B','C','D'].indexOf(g)>=0){ m.tot[g]++; m.own[o][g]++; } else { m.tot.none++; m.own[o].none++; }
+  });
+  var keys=Object.keys(map).sort();
+  ['day','week','month'].forEach(function(t){ var b=$("#upSeg_"+t); if(b){ b.style.fontWeight=(t===_upType?'800':'500'); b.style.color=(t===_upType?'var(--ink)':'var(--ink-3)'); } });
+  if(!keys.length){ $("#upGradeDist").innerHTML='<div style="color:var(--ink-3);font-size:13px">기록 없음</div>'; $("#upStatTbl").innerHTML=''; $("#upStatNote").textContent=''; return; }
+  if(keys.indexOf(_upCur)<0) _upCur=keys[keys.length-1];
+  var i=keys.indexOf(_upCur), d=map[_upCur];
+  $("#upStatNote").textContent=_plabel(_upType,_upCur);
+  var defs=[['S','#B45309'],['A','#047857'],['B','#2563EB'],['C','#7C3AED'],['D','#64748B'],['none','#9AA5B1']];
+  $("#upGradeDist").innerHTML='<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:8px">'+
+    '<span style="font-weight:800;font-size:13.5px;margin-right:4px">총 업로드 '+nf(d.tot.u)+'건</span>'+
+    defs.map(function(g){var lbl=g[0]==='none'?'미평가':g[0]; return '<span style="font-size:12px;padding:3px 9px;border-radius:7px;background:#f4f6f5;font-weight:700;color:'+g[1]+'">'+lbl+' '+nf(d.tot[g[0]])+'</span>';}).join('')+'</div>';
+  var rows=Object.keys(d.own).map(function(o){var x=d.own[o];x.o=o;return x;}).sort(function(a,b){return b.u-a.u;});
+  $("#upStatTbl").innerHTML='<thead><tr><th>담당</th><th class="r">업로드</th><th class="r">S</th><th class="r">A</th><th class="r">B</th><th class="r">C</th><th class="r">D</th><th class="r">미평가</th></tr></thead><tbody>'+
+    rows.map(function(x){return '<tr><td>'+esc(x.o)+'</td><td class="r num">'+nf(x.u)+'</td><td class="r num">'+nf(x.S)+'</td><td class="r num">'+nf(x.A)+'</td><td class="r num">'+nf(x.B)+'</td><td class="r num">'+nf(x.C)+'</td><td class="r num">'+nf(x.D)+'</td><td class="r num" style="color:var(--ink-3)">'+nf(x.none)+'</td></tr>';}).join('')+'</tbody>';
+  $("#upStatPrev").disabled=i<=0; $("#upStatNext").disabled=i>=keys.length-1;
+  $("#upStatPrev").onclick=function(){var j=keys.indexOf(_upCur);if(j>0){_upCur=keys[j-1];renderUploadStats();}};
+  $("#upStatNext").onclick=function(){var j=keys.indexOf(_upCur);if(j<keys.length-1){_upCur=keys[j+1];renderUploadStats();}};
+}
+function _upNum(id){ var v=parseFloat($("#"+id).value); return isNaN(v)?0:v; }
+function _upMetrics(){ return {views:_upNum('upViews'),likes:_upNum('upLikes'),comments:_upNum('upComments'),impc:_upNum('upImpc'),saves:_upNum('upSaves'),shares:_upNum('upShares'),reposts:_upNum('upReposts')}; }
+function _upScore(m){ var s=0; s+=(m.comments>0)?Math.min((m.impc/m.comments)*30,30):0; s+=Math.min(m.reposts*0.714,30); s+=Math.min(m.saves*0.0046875,15); s+=Math.min(m.shares*0.001625,15); var v=m.views; s+=v<100000?0:v<200000?2:v<300000?4:v<400000?6:v<500000?8:10; return Math.round(s*10)/10; }
+function _upGrade(s){ return s>=90?'S':s>=80?'A':s>=70?'B':s>=60?'C':'D'; }
+function _upHasMetrics(m){ return !!(m.views||m.comments||m.impc||m.saves||m.shares||m.reposts||m.likes); }
+function _upRefreshScore(){ var m=_upMetrics(); if(!_upHasMetrics(m)){ $("#upScoreBox").textContent='—'; return; } var s=_upScore(m); $("#upScoreBox").innerHTML=s+'점 · <b>'+_upGrade(s)+'</b>'; }
+function _upClear(){ ['upN','upP','upItem','upLink','upOp','upUp','upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(id){var e=$("#"+id);if(e)e.value='';}); $("#upScoreBox").textContent='—'; }
+function _upSave(){
+  var name=$("#upN").value.trim();
+  if(!name){ alert('이름을 입력하세요.'); return; }
+  var m=_upMetrics(), has=_upHasMetrics(m);
+  var score=has?_upScore(m):null, grade=has?_upGrade(score):'';
+  var owner=OW[ME]||'';
+  var row={name:name,phone:$("#upP").value.trim(),cat:$("#upCat").value,item:$("#upItem").value.trim(),
+    newrepeat:$("#upNew").value,op:$("#upOp").value.trim(),up:$("#upUp").value.trim(),link:$("#upLink").value.trim(),
+    owner:owner,views:m.views?String(m.views):'',likes:m.likes||null,comments:m.comments||null,imp_comments:m.impc||null,
+    saves:m.saves||null,shares:m.shares||null,reposts:m.reposts||null,score:score,grade:grade,source:'app'};
+  var b=$("#upSaveBtn"); b.disabled=true; b.textContent='등록 중…';
+  window._sb.from('uploads').insert(row).then(function(r){
+    b.disabled=false; b.textContent='업로드 등록';
+    if(r.error){ alert('저장 실패: '+r.error.message); return; }
+    UP.push({name:name,phone:row.phone,cat:row.cat,item:row.item,visit:'',op:row.op,chk1:'',up:row.up,chk2:'',owner:owner,views:row.views,grade:grade,link:row.link});
+    renderUpload(); renderUploadStats(); renderDash();
+    _upClear();
+    alert('업로드 등록 완료! (총점 '+(has?score:'-')+' · 등급 '+(grade||'-')+')');
+  });
 }
 function renderDash(){
   var last7=dayKeys.slice(-7), avg7=Math.round(last7.reduce(function(a,k){return a+byDay[k];},0)/last7.length);
@@ -721,7 +824,7 @@ function bindSet(){
 }
 
 fillSel(); rules(); tryList(); bindEntry(); bindSet();
-renderDash(); renderPPP(); renderUpload(); renderDb(); renderRisk();
+renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderDb(); renderRisk();
 $("#dbQ").addEventListener("input",renderDb);
 $("#dbF").addEventListener("change",renderDb);
 $("#dbS").addEventListener("change",renderDb);
