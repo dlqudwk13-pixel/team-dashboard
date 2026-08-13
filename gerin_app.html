@@ -621,12 +621,13 @@ function renderDash(){
     byOwner.map(function(x){var c=x.r>=4?"var(--signal)":x.r<1?"var(--stop)":"inherit";
       return '<tr><td>'+esc(x.o)+'</td><td class="r num">'+nf(x.c)+'</td><td class="r num">'+nf(x.b)+'</td><td class="r num" style="color:'+c+';font-weight:500">'+x.r.toFixed(1)+'%</td><td class="r num" style="color:'+(x.u?"inherit":"var(--ink-3)")+'">'+x.u+'</td></tr>';}).join("")+'</tbody>';
 
-  var _me=OW[ME]||"";
-  var myTd=CT.filter(function(c){return c[1]===TODAY&&c[2]===ME;});
+  var _me=window.__ME__||OW[ME]||"";
+  var _meIdx=OW.indexOf(_me);
+  var myTd=CT.filter(function(c){return c[1]===TODAY&&c[2]===_meIdx;});
   var myRes=myTd.filter(function(c){return c[3];}).length;
   var myU=UP.filter(function(u){return u.up===TODAY&&u.owner===_me;});
   var _moKey=TODAY.slice(0,7), _moC=0, _moR=0;
-  CT.forEach(function(c){ if(c[2]===ME&&c[1].slice(0,7)===_moKey){ _moC++; if(c[3])_moR++; } });
+  CT.forEach(function(c){ if(c[2]===_meIdx&&c[1].slice(0,7)===_moKey){ _moC++; if(c[3])_moR++; } });
   $("#report").textContent="[일간보고] "+TODAY+" · "+_me+"\n컨텍 "+nf(myTd.length)+"명 · 예약 "+nf(myRes)+"명 · 업로드 "+nf(myU.length)+"건\n"+
     "월 누적 컨텍 "+nf(_moC)+"명 / 예약 "+nf(_moR)+"명 ("+(_moC?(_moR/_moC*100).toFixed(1):0)+"%)"+
     (myU.length?("\n\n[업로드]\n"+myU.map(function(u){return "· "+(u.link||"(링크 없음)");}).join("\n")):"");
@@ -874,7 +875,7 @@ renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','m
 $("#dbQ").addEventListener("input",renderDb);
 $("#dbF").addEventListener("change",renderDb);
 $("#dbS").addEventListener("change",renderDb);
-$("#meNm").textContent=OW[ME]; $("#meAv").textContent=OW[ME][0];
+var _disp=window.__ME__||OW[ME]||""; $("#meNm").textContent=_disp; $("#meAv").textContent=(_disp&&_disp[0])||"";
 };
 </script>
 <script>
