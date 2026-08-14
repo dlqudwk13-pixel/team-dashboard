@@ -261,7 +261,7 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
       <section id="v-upload" class="hide">
         <div class="card pad" style="margin-bottom:16px">
           <div class="hd"><h2>빠른 입력 (내 담당)</h2><button class="btn pri" id="quickAdd" style="padding:5px 14px;font-size:13px">+ 행 추가</button></div>
-          <div style="font-size:11.5px;color:var(--ink-3);margin:4px 0 10px">칸을 채우면 자동 저장돼요. 시트처럼 쭉 입력하세요. 업로드일을 넣으면 2주 날짜가 자동으로 뜨고, 오른쪽 지표(2주 조회수·좋아요·댓글 등)를 넣으면 총점·등급이 자동으로 나와요.</div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin:4px 0 10px">칸을 채우면 자동 저장돼요. 시트처럼 쭉 입력하세요. 시술일을 넣으면 1차점검이 일주일 뒤로, 업로드일을 넣으면 2주 날짜가 자동으로 채워지고, 오른쪽 지표(2주 조회수·좋아요·댓글 등)를 넣으면 총점·등급이 자동으로 나와요.</div>
           <div id="quickGrid" style="max-height:440px;overflow:auto"></div>
         </div>
         <div class="card pad" style="margin-bottom:16px;display:none">
@@ -625,7 +625,8 @@ function renderMyUploads(){
     '</div>';
   }).join('');
 }
-function plus14(d){ if(!d) return ""; var m=String(d).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/); if(!m) return ""; var dt=new Date(+m[1],+m[2]-1,+m[3]); dt.setDate(dt.getDate()+14); var y=dt.getFullYear(),mo=("0"+(dt.getMonth()+1)).slice(-2),da=("0"+dt.getDate()).slice(-2); return y+"-"+mo+"-"+da; }
+function plusDays(d,n){ if(!d) return ""; var m=String(d).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/); if(!m) return ""; var dt=new Date(+m[1],+m[2]-1,+m[3]); dt.setDate(dt.getDate()+n); var y=dt.getFullYear(),mo=("0"+(dt.getMonth()+1)).slice(-2),da=("0"+dt.getDate()).slice(-2); return y+"-"+mo+"-"+da; }
+function plus14(d){ return plusDays(d,14); }
 function renderQuickGrid(){
   var el=$("#quickGrid"); if(!el) return;
   var me=OW[ME]||"";
@@ -685,6 +686,11 @@ function _quickChange(e){
     row.score=sc; row.grade=gr; patch.score=sc; patch.grade=gr;
     var sc_e=document.getElementById("scell_"+id); if(sc_e) sc_e.textContent=(has?sc:"—");
     var gc=document.getElementById("gcell_"+id); if(gc) gc.textContent=(gr||"—");
+  }
+  if(f==="op"){
+    var c1=plusDays(val,7);
+    var g1=$("#quickGrid"); var ci=g1&&g1.querySelector('input[data-id="'+id+'"][data-f="chk1"]');
+    if(ci && !ci.value && c1){ ci.value=c1; if(row){ row.chk1=c1; } patch.chk1=c1; }
   }
   if(f==="up"){
     var c2=plus14(val);
