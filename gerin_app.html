@@ -346,6 +346,19 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
       <!-- ── 점검 ── -->
       <section id="v-risk" class="hide">
         <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:18px" id="riskKpi"></div>
+        <div class="card pad" style="margin-bottom:14px">
+          <div class="hd"><h2>블랙리스트 등재</h2><span class="note">핸들·사유 입력 후 등재</span></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">
+            <div style="flex:1;min-width:200px"><label class="fl">핸들 / 링크</label><input id="blH" type="text" placeholder="@handle 또는 instagram.com/..." style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:var(--mono)"></div>
+            <div style="width:120px"><label class="fl">이름</label><input id="blN" type="text" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div style="width:150px"><label class="fl">연락처</label><input id="blP" type="text" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div style="flex:1;min-width:170px"><label class="fl">사유</label><input id="blR" type="text" placeholder="노쇼 / 계약위반 등" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <button class="btn" id="blAddBtn" style="padding:9px 18px">등재</button>
+          </div>
+          <div id="blMsg" style="font-size:12.5px;margin-top:9px"></div>
+          <div style="font-size:12px;color:var(--ink-3);margin:16px 0 6px;font-weight:700">등재 목록 <span id="blCount"></span></div>
+          <div class="scroll" style="max-height:320px;overflow:auto"><table id="blTbl"></table></div>
+        </div>
         <div class="card" style="margin-bottom:14px">
           <div class="pad" style="padding-bottom:6px"><div class="hd"><h2>블랙리스트 재컨텍</h2><span class="note">등재 이후 발송된 건</span></div></div>
           <div class="scroll" style="padding:0 8px 8px"><table id="riskBl"></table></div>
@@ -918,6 +931,44 @@ window.detail=function(i){
   $("#dbDetail").scrollIntoView({behavior:"smooth",block:"nearest"});
 };
 
+/* ══ blacklist 등재/해제 ══ */
+function _blNorm(s){ s=(s||"").trim().toLowerCase(); var m=s.match(/instagram\.com\/([^\/?#]+)/); if(m)s=m[1]; return s.replace(/^@/,"").replace(/\/+$/,""); }
+function _blRecompute(){ SUM.forEach(function(s){ s.black=!!blMap[s.h]; }); blHits=[]; SUM.forEach(function(s){ if(s.black)(IDX[s.i]||[]).forEach(function(c){ blHits.push({h:s.h,d:c[1],o:OW[c[2]],r:(blMap[s.h].reason||"")}); }); }); }
+function renderBlList(){
+  var el=$("#blTbl"); if(!el) return;
+  var cnt=$("#blCount"); if(cnt) cnt.textContent="("+BL.length+")";
+  var arr=BL.slice().sort(function(a,b){return a.h<b.h?-1:1;});
+  if(!arr.length){ el.innerHTML='<tbody><tr><td style="color:var(--ink-3);padding:10px">등재된 계정이 없어요.</td></tr></tbody>'; return; }
+  el.innerHTML='<thead><tr><th>핸들</th><th>이름</th><th>사유</th><th>등재일</th><th style="width:56px"></th></tr></thead><tbody>'+
+    arr.map(function(b){ return '<tr><td class="mono" style="font-size:12.5px">'+esc(b.h)+'</td><td>'+esc(b.name||"")+'</td><td style="color:var(--ink-3);font-size:12.5px">'+esc(b.reason||"")+'</td><td class="mono" style="font-size:12px;color:var(--ink-3)">'+esc(b.date||"—")+'</td><td><button class="bl-del" data-h="'+esc(b.h)+'" style="border:0;background:none;color:#c0392b;cursor:pointer;font-size:12.5px">해제</button></td></tr>'; }).join("")+'</tbody>';
+}
+function _blAdd(){
+  var h=_blNorm($("#blH").value);
+  var msg=$("#blMsg");
+  if(!h){ if(msg)msg.innerHTML='<span style="color:#c0392b">핸들을 입력하세요.</span>'; return; }
+  if(blMap[h]){ if(msg)msg.innerHTML='<span style="color:#c0392b">이미 등재된 계정이에요: '+esc(h)+'</span>'; return; }
+  var rec={handle:h,name:$("#blN").value.trim(),phone:$("#blP").value.trim(),date:TODAY,reason:$("#blR").value.trim(),tier:''};
+  var btn=$("#blAddBtn"); if(btn)btn.disabled=true;
+  window._sb.from("blacklist").insert(rec).then(function(r){
+    if(btn)btn.disabled=false;
+    if(r.error){ if(msg)msg.innerHTML='<span style="color:#c0392b">등재 실패: '+esc(r.error.message)+'</span>'; return; }
+    var e={h:h,name:rec.name,phone:rec.phone,date:rec.date,reason:rec.reason,tier:''};
+    BL.push(e); blMap[h]=e; _blRecompute();
+    ['blH','blN','blP','blR'].forEach(function(id){var el=$("#"+id);if(el)el.value='';});
+    if(msg)msg.innerHTML='<span style="color:#047857">등재 완료: '+esc(h)+'</span>';
+    renderBlList(); renderRisk(); renderDash();
+  });
+}
+function _blDel(h){
+  if(!confirm(h+' 을(를) 블랙리스트에서 해제할까요?')) return;
+  window._sb.from("blacklist").delete().eq("handle",h).then(function(r){
+    if(r.error){ alert('해제 실패: '+r.error.message); return; }
+    for(var i=0;i<BL.length;i++){ if(BL[i].h===h){ BL.splice(i,1); break; } }
+    delete blMap[h]; _blRecompute();
+    renderBlList(); renderRisk(); renderDash();
+  });
+}
+
 /* ══ risk ══ */
 function renderRisk(){
   $("#riskKpi").innerHTML=kpi("담당자 간 중복",nf(dupOwn),"전체 "+nf(HS.length)+"명 중","alert")+
@@ -945,7 +996,10 @@ function bindSet(){
 }
 
 fillSel(); rules(); tryList(); bindEntry(); bindSet();
-renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); var _mul=document.getElementById('myUpList'); if(_mul)_mul.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-id]'):null; if(b)_upEdit(b.getAttribute('data-id')); }); renderQuickGrid(); var _qa=document.getElementById('quickAdd'); if(_qa)_qa.addEventListener('click',_quickAddRow); var _qg=document.getElementById('quickGrid'); if(_qg)_qg.addEventListener('change',_quickChange); if(_qg)_qg.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-del]'):null; if(b)_quickDelete(b.getAttribute('data-del')); }); renderDb(); renderRisk();
+renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); var _mul=document.getElementById('myUpList'); if(_mul)_mul.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-id]'):null; if(b)_upEdit(b.getAttribute('data-id')); }); renderQuickGrid(); var _qa=document.getElementById('quickAdd'); if(_qa)_qa.addEventListener('click',_quickAddRow); var _qg=document.getElementById('quickGrid'); if(_qg)_qg.addEventListener('change',_quickChange); if(_qg)_qg.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-del]'):null; if(b)_quickDelete(b.getAttribute('data-del')); }); renderDb(); renderRisk(); renderBlList();
+var _bla=document.getElementById('blAddBtn'); if(_bla)_bla.addEventListener('click',_blAdd);
+var _blt=document.getElementById('blTbl'); if(_blt)_blt.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-h]'):null; if(b)_blDel(b.getAttribute('data-h')); });
+var _blh=document.getElementById('blH'); if(_blh)_blh.addEventListener('keydown',function(e){ if(e.key==='Enter')_blAdd(); });
 $("#dbQ").addEventListener("input",renderDb);
 $("#dbF").addEventListener("change",renderDb);
 $("#dbS").addEventListener("change",renderDb);
