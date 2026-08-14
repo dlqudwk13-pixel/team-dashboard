@@ -617,10 +617,10 @@ function renderQuickGrid(){
   function inp(u,f,ty){ return '<input data-id="'+u.id+'" data-f="'+f+'" type="'+(ty||"text")+'" value="'+iv(u[f])+'">'; }
   function catSel(u){ return '<select data-id="'+u.id+'" data-f="cat">'+["쁘띠","성형"].map(function(o){return '<option'+((u.cat||"쁘띠")===o?" selected":"")+'>'+o+'</option>';}).join("")+'</select>'; }
   function stSel(u){ var st=(u.stage!=null&&u.stage!=="")?+u.stage:stage(u); return '<select data-id="'+u.id+'" data-f="stage">'+S.map(function(o,i){return '<option value="'+i+'"'+(st===i?" selected":"")+'>'+o+'</option>';}).join("")+'</select>'; }
-  function gcQ(u){ var m={views:+u.views||0,comments:+u.comments||0,impc:+u.imp_comments||0,saves:+u.saves||0,shares:+u.shares||0,reposts:+u.reposts||0}; var has=(m.views||m.comments||m.impc||m.saves||m.shares||m.reposts); var t=has?_upScore(m):null, g=has?_upGrade(t):""; return '<td id="gcell_'+u.id+'" style="font-size:12px;font-weight:700;white-space:nowrap;color:var(--ink)">'+(g?t+" · "+g:"—")+'</td>'; }
+  function gcQ(u){ var m={views:+u.views||0,comments:+u.comments||0,impc:+u.imp_comments||0,saves:+u.saves||0,shares:+u.shares||0,reposts:+u.reposts||0}; var has=(m.views||m.comments||m.impc||m.saves||m.shares||m.reposts); var t=has?_upScore(m):null, g=has?_upGrade(t):""; return '<td id="scell_'+u.id+'" style="font-size:12px;font-weight:700;white-space:nowrap;color:var(--ink)">'+(has?t:"—")+'</td><td id="gcell_'+u.id+'" style="font-size:12px;font-weight:700;white-space:nowrap;color:var(--ink)">'+(g||"—")+'</td>'; }
   function c2cell(u){ var v=plus14(u.up); return '<td id="c2cell_'+u.id+'" style="font-size:12px;white-space:nowrap;color:var(--ink-2)">'+(v||"—")+'</td>'; }
   if(!mine.length){ el.innerHTML='<div style="color:var(--ink-3);font-size:13px;padding:8px 0">아직 없어요. "+ 행 추가"로 시작하세요.</div>'; return; }
-  var head='<tr><th>성형/쁘띠</th><th style="min-width:120px">항목</th><th style="min-width:90px">이름</th><th style="min-width:130px">연락처</th><th>시술일</th><th>1차점검</th><th>업로드일</th><th style="min-width:100px">2주 날짜</th><th style="min-width:170px">링크</th><th style="min-width:120px">단계</th><th style="min-width:90px">2주 조회수</th><th style="min-width:70px">좋아요</th><th style="min-width:70px">총댓글</th><th style="min-width:70px">중요댓글</th><th style="min-width:60px">저장</th><th style="min-width:60px">공유</th><th style="min-width:70px">리포스트</th><th style="min-width:90px">등급</th><th style="width:34px"></th></tr>';
+  var head='<tr><th>성형/쁘띠</th><th style="min-width:120px">항목</th><th style="min-width:90px">이름</th><th style="min-width:130px">연락처</th><th>시술일</th><th>1차점검</th><th>업로드일</th><th style="min-width:100px">2주 날짜</th><th style="min-width:170px">링크</th><th style="min-width:120px">단계</th><th style="min-width:90px">2주 조회수</th><th style="min-width:70px">좋아요</th><th style="min-width:70px">총댓글</th><th style="min-width:70px">중요댓글</th><th style="min-width:60px">저장</th><th style="min-width:60px">공유</th><th style="min-width:70px">리포스트</th><th style="min-width:70px">총점</th><th style="min-width:70px">등급</th><th style="width:34px"></th></tr>';
   var rows=mine.map(function(u){ return '<tr>'+
     '<td>'+catSel(u)+'</td><td>'+inp(u,"item")+'</td><td>'+inp(u,"name")+'</td><td>'+inp(u,"phone")+'</td>'+
     '<td>'+inp(u,"op","date")+'</td><td>'+inp(u,"chk1","date")+'</td><td>'+inp(u,"up","date")+'</td>'+
@@ -664,7 +664,8 @@ function _quickChange(e){
     var has=(m.views||m.comments||m.impc||m.saves||m.shares||m.reposts);
     var sc=has?_upScore(m):null, gr=has?_upGrade(sc):"";
     row.score=sc; row.grade=gr; patch.score=sc; patch.grade=gr;
-    var gc=document.getElementById("gcell_"+id); if(gc) gc.textContent=(gr?sc+" · "+gr:"—");
+    var sc_e=document.getElementById("scell_"+id); if(sc_e) sc_e.textContent=(has?sc:"—");
+    var gc=document.getElementById("gcell_"+id); if(gc) gc.textContent=(gr||"—");
   }
   if(f==="up"){
     var c2=plus14(val);
