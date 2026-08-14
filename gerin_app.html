@@ -391,6 +391,11 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
             <select id="meSel" style="max-width:200px"></select>
           </div>
         </div>
+        <div class="card pad" id="apprCard" style="max-width:560px;margin-top:12px;display:none">
+          <div class="hd"><h2>가입 승인</h2><span class="note">관리자 전용</span></div>
+          <div style="font-size:12.5px;color:var(--ink-3);margin:6px 0 12px;line-height:1.6">새로 가입한 팀원을 승인하면 데이터에 접근할 수 있어요. 보류하면 다시 대기 상태가 돼요.</div>
+          <div id="apprList"></div>
+        </div>
         <div class="card pad" style="max-width:560px;margin-top:12px">
           <div class="hd"><h2>이 프로토타입에 대해</h2></div>
           <div style="font-size:12.5px;color:var(--ink-2);line-height:1.9">
@@ -969,6 +974,37 @@ function _blDel(h){
   });
 }
 
+/* ══ 가입 승인 (관리자) ══ */
+function renderApprovals(){
+  var card=$("#apprCard"); if(!card) return;
+  if(!window.__ISADMIN__){ card.style.display="none"; return; }
+  card.style.display="";
+  window._sb.from("members").select("*").order("name").then(function(r){
+    var box=$("#apprList"); if(!box) return;
+    if(r.error){ box.innerHTML='<div style="color:#c0392b;font-size:12.5px">불러오기 실패: '+esc(r.error.message)+'</div>'; return; }
+    var ms=(r.data||[]).filter(function(m){ return !m.is_admin; });
+    var pend=ms.filter(function(m){return m.approved===false;});
+    var okd=ms.filter(function(m){return m.approved!==false;});
+    function row(m){
+      var p=(m.approved===false);
+      var btn=p?'<button class="appr-btn" data-name="'+esc(m.name)+'" data-v="1" style="border:0;background:#0e7a5f;color:#fff;border-radius:7px;padding:5px 12px;font-size:12.5px;font-weight:700;cursor:pointer">승인</button>'
+               :'<button class="appr-btn" data-name="'+esc(m.name)+'" data-v="0" style="border:1px solid var(--line);background:#fff;color:#c0392b;border-radius:7px;padding:5px 12px;font-size:12.5px;cursor:pointer">보류</button>';
+      var tag=p?'<span style="font-size:11.5px;color:#c0392b;font-weight:700">대기</span>':'<span style="font-size:11.5px;color:#047857;font-weight:700">승인됨</span>';
+      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)'+(p?';background:#fdf6ec':'')+'"><span style="font-weight:600;min-width:90px">'+esc(m.name)+'</span>'+tag+'<span style="margin-left:auto">'+btn+'</span></div>';
+    }
+    var html="";
+    if(pend.length) html+='<div style="font-size:12px;font-weight:700;color:#c0392b;margin-bottom:2px">승인 대기 '+pend.length+'명</div>'+pend.map(row).join("");
+    html+='<div style="font-size:12px;font-weight:700;color:var(--ink-3);margin:12px 0 2px">승인된 팀원 '+okd.length+'명</div>'+(okd.length?okd.map(row).join(""):'<div style="font-size:12.5px;color:var(--ink-3);padding:6px 0">없음</div>');
+    box.innerHTML=html;
+  });
+}
+function _apprSet(name,v){
+  window._sb.from("members").update({approved:v}).eq("name",name).then(function(r){
+    if(r.error){ alert("변경 실패: "+r.error.message); return; }
+    renderApprovals();
+  });
+}
+
 /* ══ risk ══ */
 function renderRisk(){
   $("#riskKpi").innerHTML=kpi("담당자 간 중복",nf(dupOwn),"전체 "+nf(HS.length)+"명 중","alert")+
@@ -996,7 +1032,8 @@ function bindSet(){
 }
 
 fillSel(); rules(); tryList(); bindEntry(); bindSet();
-renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); var _mul=document.getElementById('myUpList'); if(_mul)_mul.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-id]'):null; if(b)_upEdit(b.getAttribute('data-id')); }); renderQuickGrid(); var _qa=document.getElementById('quickAdd'); if(_qa)_qa.addEventListener('click',_quickAddRow); var _qg=document.getElementById('quickGrid'); if(_qg)_qg.addEventListener('change',_quickChange); if(_qg)_qg.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-del]'):null; if(b)_quickDelete(b.getAttribute('data-del')); }); renderDb(); renderRisk(); renderBlList();
+renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); var _mul=document.getElementById('myUpList'); if(_mul)_mul.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-id]'):null; if(b)_upEdit(b.getAttribute('data-id')); }); renderQuickGrid(); var _qa=document.getElementById('quickAdd'); if(_qa)_qa.addEventListener('click',_quickAddRow); var _qg=document.getElementById('quickGrid'); if(_qg)_qg.addEventListener('change',_quickChange); if(_qg)_qg.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-del]'):null; if(b)_quickDelete(b.getAttribute('data-del')); }); renderDb(); renderRisk(); renderBlList(); renderApprovals();
+var _apl=document.getElementById('apprList'); if(_apl)_apl.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-name]'):null; if(b)_apprSet(b.getAttribute('data-name'), b.getAttribute('data-v')==='1'); });
 var _bla=document.getElementById('blAddBtn'); if(_bla)_bla.addEventListener('click',_blAdd);
 var _blt=document.getElementById('blTbl'); if(_blt)_blt.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-h]'):null; if(b)_blDel(b.getAttribute('data-h')); });
 var _blh=document.getElementById('blH'); if(_blh)_blh.addEventListener('keydown',function(e){ if(e.key==='Enter')_blAdd(); });
@@ -1082,7 +1119,11 @@ var _disp=window.__ME__||OW[ME]||""; $("#meNm").textContent=_disp; $("#meAv").te
     var owners=active.map(function(m){return m.name;});
     if(!owners.length) owners=window.__DATA__.owners;   // 안전장치
     var emailName={}; mem.forEach(function(m){ emailName[m.email]=m.name; });
-    try{ var _u=await sb.auth.getUser(); var _e=(_u.data.user&&_u.data.user.email)||""; window.__ME__=emailName[_e]||null; }catch(e){}
+    var _meEmail=""; try{ var _u=await sb.auth.getUser(); _meEmail=(_u.data.user&&_u.data.user.email)||""; window.__ME__=emailName[_meEmail]||null; }catch(e){}
+    var _meRec=null; for(var _mi=0;_mi<mem.length;_mi++){ if(mem[_mi].email===_meEmail){ _meRec=mem[_mi]; break; } }
+    window.__ISADMIN__=!!(_meRec&&_meRec.is_admin);
+    window.__MEMBERS__=mem;
+    if(_meRec && _meRec.approved===false){ showPending(); return; }
     var rows=await loadAll('contacts');
     var hmap={},handles=[];
     function hi(h){ if(!(h in hmap)){hmap[h]=handles.length;handles.push(h);} return hmap[h]; }
@@ -1098,6 +1139,15 @@ var _disp=window.__ME__||OW[ME]||""; $("#meNm").textContent=_disp; $("#meAv").te
     lo.style.cssText="position:fixed;bottom:12px;right:12px;z-index:9998;font-size:11px;padding:6px 11px;border:1px solid #d0d0d0;border-radius:8px;background:#fff;color:#555;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.12)";
     lo.onclick=function(){ sb.auth.signOut().then(function(){location.reload();}); };
     document.body.appendChild(lo);
+  }
+  function showPending(){
+    ov.innerHTML='<div style="background:#fff;padding:30px 26px;border-radius:16px;width:340px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35)">'
+      +'<div style="font-size:34px;margin-bottom:6px">⏳</div>'
+      +'<div style="font-size:18px;font-weight:800;margin-bottom:6px">승인 대기중</div>'
+      +'<div style="font-size:13px;color:#8a8a8a;line-height:1.6;margin-bottom:18px">가입이 접수됐어요.<br>관리자 승인 후 이용할 수 있어요.</div>'
+      +'<button id="__plo" style="width:100%;padding:11px;border:1px solid #dcdcdc;border-radius:9px;background:#fff;color:#555;font-weight:700;font-size:14px;cursor:pointer">로그아웃</button>'
+      +'</div>';
+    var pb=document.getElementById('__plo'); if(pb)pb.onclick=function(){ sb.auth.signOut().then(function(){location.reload();}); };
   }
   render();
   sb.auth.getSession().then(function(r){ if(r.data.session){ boot().catch(function(e){var le=document.getElementById('__le'); if(le)le.textContent='데이터 로드 실패: '+e.message;}); } });
