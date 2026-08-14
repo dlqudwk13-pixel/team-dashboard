@@ -272,10 +272,10 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
       <section id="v-upload" class="hide">
         <div class="card pad" style="margin-bottom:16px">
           <div class="hd"><h2>빠른 입력 (내 담당)</h2><button class="btn pri" id="quickAdd" style="padding:5px 14px;font-size:13px">+ 행 추가</button></div>
-          <div style="font-size:11.5px;color:var(--ink-3);margin:4px 0 10px">칸을 채우면 자동 저장돼요. 시트처럼 쭉 입력하세요. (성과 지표·등급은 아래 폼의 "수정"에서 입력)</div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin:4px 0 10px">칸을 채우면 자동 저장돼요. 시트처럼 쭉 입력하세요. 오른쪽 지표(조회수·좋아요·댓글 등)를 넣으면 총점·등급이 자동으로 나와요.</div>
           <div id="quickGrid" style="max-height:440px;overflow:auto"></div>
         </div>
-        <div class="card pad" style="margin-bottom:16px">
+        <div class="card pad" style="margin-bottom:16px;display:none">
           <div class="hd"><h2>업로드 등록</h2><span class="note" id="upFormOwner"></span></div>
           <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
             <div><label class="fl">이름</label><input id="upN" type="text" placeholder="인플루언서 이름" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
@@ -305,7 +305,7 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
             <span class="note" id="upEditNote" style="color:#b8791b;align-self:center"></span>
           </div>
         </div>
-        <div class="card pad" style="margin-bottom:16px">
+        <div class="card pad" style="margin-bottom:16px;display:none">
           <div class="hd"><h2>내 업로드 관리</h2><span class="note">진행중인 건 클릭해서 수정</span></div>
           <div id="myUpList"></div>
         </div>
@@ -616,12 +616,13 @@ function renderQuickGrid(){
   function inp(u,f,ty){ return '<input data-id="'+u.id+'" data-f="'+f+'" type="'+(ty||"text")+'" value="'+iv(u[f])+'">'; }
   function catSel(u){ return '<select data-id="'+u.id+'" data-f="cat">'+["쁘띠","성형"].map(function(o){return '<option'+((u.cat||"쁘띠")===o?" selected":"")+'>'+o+'</option>';}).join("")+'</select>'; }
   function stSel(u){ var st=(u.stage!=null&&u.stage!=="")?+u.stage:stage(u); return '<select data-id="'+u.id+'" data-f="stage">'+S.map(function(o,i){return '<option value="'+i+'"'+(st===i?" selected":"")+'>'+o+'</option>';}).join("")+'</select>'; }
+  function gcQ(u){ var m={views:+u.views||0,comments:+u.comments||0,impc:+u.imp_comments||0,saves:+u.saves||0,shares:+u.shares||0,reposts:+u.reposts||0}; var has=(m.views||m.comments||m.impc||m.saves||m.shares||m.reposts); var t=has?_upScore(m):null, g=has?_upGrade(t):""; return '<td id="gcell_'+u.id+'" style="font-size:12px;font-weight:700;white-space:nowrap;color:var(--ink)">'+(g?t+" · "+g:"—")+'</td>'; }
   if(!mine.length){ el.innerHTML='<div style="color:var(--ink-3);font-size:13px;padding:8px 0">아직 없어요. "+ 행 추가"로 시작하세요.</div>'; return; }
-  var head='<tr><th>성형/쁘띠</th><th style="min-width:120px">항목</th><th style="min-width:90px">이름</th><th style="min-width:130px">연락처</th><th>시술일</th><th>1차점검</th><th>업로드일</th><th style="min-width:170px">링크</th><th style="min-width:120px">단계</th><th style="width:34px"></th></tr>';
+  var head='<tr><th>성형/쁘띠</th><th style="min-width:120px">항목</th><th style="min-width:90px">이름</th><th style="min-width:130px">연락처</th><th>시술일</th><th>1차점검</th><th>업로드일</th><th style="min-width:170px">링크</th><th style="min-width:120px">단계</th><th style="min-width:80px">조회수</th><th style="min-width:70px">좋아요</th><th style="min-width:70px">총댓글</th><th style="min-width:70px">중요댓글</th><th style="min-width:60px">저장</th><th style="min-width:60px">공유</th><th style="min-width:70px">리포스트</th><th style="min-width:90px">등급</th><th style="width:34px"></th></tr>';
   var rows=mine.map(function(u){ return '<tr>'+
     '<td>'+catSel(u)+'</td><td>'+inp(u,"item")+'</td><td>'+inp(u,"name")+'</td><td>'+inp(u,"phone")+'</td>'+
     '<td>'+inp(u,"op","date")+'</td><td>'+inp(u,"chk1","date")+'</td><td>'+inp(u,"up","date")+'</td>'+
-    '<td>'+inp(u,"link")+'</td><td>'+stSel(u)+'</td><td><button class="q-del" data-del="'+u.id+'" title="삭제" style="border:0;background:none;color:#c0392b;cursor:pointer;font-size:16px;line-height:1;padding:2px 6px">×</button></td></tr>'; }).join("");
+    '<td>'+inp(u,"link")+'</td><td>'+stSel(u)+'</td>'+'<td>'+inp(u,"views","number")+'</td><td>'+inp(u,"likes","number")+'</td><td>'+inp(u,"comments","number")+'</td><td>'+inp(u,"imp_comments","number")+'</td><td>'+inp(u,"saves","number")+'</td><td>'+inp(u,"shares","number")+'</td><td>'+inp(u,"reposts","number")+'</td>'+gcQ(u)+'<td><button class="q-del" data-del="'+u.id+'" title="삭제" style="border:0;background:none;color:#c0392b;cursor:pointer;font-size:16px;line-height:1;padding:2px 6px">×</button></td></tr>'; }).join("");
   el.innerHTML='<table class="qgrid">'+head+rows+'</table>';
 }
 function _quickAddRow(){
@@ -646,11 +647,24 @@ function _quickDelete(id){
 function _quickChange(e){
   var el=e.target; var id=el.getAttribute&&el.getAttribute("data-id"); var f=el.getAttribute&&el.getAttribute("data-f");
   if(!id||!f) return;
-  var val=(f==="stage")?parseInt(el.value,10):el.value;
+  var NUM={likes:1,comments:1,imp_comments:1,saves:1,shares:1,reposts:1};
+  var val;
+  if(f==="stage") val=parseInt(el.value,10);
+  else if(NUM[f]) val=(el.value===""?null:parseInt(el.value,10));
+  else val=el.value;
   var patch={}; patch[f]=val;
+  var row=null;
+  for(var i=0;i<UP.length;i++){ if(UP[i].id==id){ UP[i][f]=val; row=UP[i]; break; } }
+  var METRIC={views:1,likes:1,comments:1,imp_comments:1,saves:1,shares:1,reposts:1};
+  if(row && METRIC[f]){
+    var m={views:+row.views||0,comments:+row.comments||0,impc:+row.imp_comments||0,saves:+row.saves||0,shares:+row.shares||0,reposts:+row.reposts||0};
+    var has=(m.views||m.comments||m.impc||m.saves||m.shares||m.reposts);
+    var sc=has?_upScore(m):null, gr=has?_upGrade(sc):"";
+    row.score=sc; row.grade=gr; patch.score=sc; patch.grade=gr;
+    var gc=document.getElementById("gcell_"+id); if(gc) gc.textContent=(gr?sc+" · "+gr:"—");
+  }
   window._sb.from("uploads").update(patch).eq("id",id).then(function(r){ if(r.error){ alert("저장 실패: "+r.error.message); } });
-  for(var i=0;i<UP.length;i++){ if(UP[i].id==id){ UP[i][f]=val; break; } }
-  renderUpload(); renderUploadStats(); renderDash(); renderMyUploads();
+  renderUpload(); renderUploadStats(); renderDash();
 }
 function renderDash(){
   var last7=dayKeys.slice(-7), avg7=Math.round(last7.reduce(function(a,k){return a+byDay[k];},0)/last7.length);
