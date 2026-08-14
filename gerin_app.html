@@ -148,6 +148,7 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 :focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.qgrid{width:100%;border-collapse:collapse;min-width:920px}.qgrid th{font-size:11px;color:var(--ink-3);font-weight:700;text-align:left;padding:6px 6px;white-space:nowrap;border-bottom:1px solid var(--line)}.qgrid td{padding:3px 4px}.qgrid input,.qgrid select{width:100%;box-sizing:border-box;padding:6px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;font-family:inherit}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -270,6 +271,11 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
       <!-- ── 업로드 관리 ── -->
       <section id="v-upload" class="hide">
         <div class="card pad" style="margin-bottom:16px">
+          <div class="hd"><h2>빠른 입력 (내 담당)</h2><button class="btn pri" id="quickAdd" style="padding:5px 14px;font-size:13px">+ 행 추가</button></div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin:4px 0 10px">칸을 채우면 자동 저장돼요. 시트처럼 쭉 입력하세요. (성과 지표·등급은 아래 폼의 "수정"에서 입력)</div>
+          <div id="quickGrid" style="overflow-x:auto"></div>
+        </div>
+        <div class="card pad" style="margin-bottom:16px">
           <div class="hd"><h2>업로드 등록</h2><span class="note" id="upFormOwner"></span></div>
           <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
             <div><label class="fl">이름</label><input id="upN" type="text" placeholder="인플루언서 이름" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
@@ -304,8 +310,8 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
           <div id="myUpList"></div>
         </div>
         <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:16px" id="upKpi"></div>
-        <div class="kb" id="kanban"></div>
-        <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:14px;align-items:start">
+        <div class="kb" id="kanban" style="display:none"></div>
+        <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:14px;align-items:start;display:none">
           <div class="card pad"><div class="hd"><h2>시술 항목</h2></div><div id="itemBars"></div></div>
           <div class="card pad"><div class="hd"><h2>단계별 소요일</h2><span class="note">중앙값</span></div><div id="leadTime"></div></div>
         </div>
@@ -325,6 +331,8 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
           </div>
           <div id="upGradeDist" style="margin-top:8px"></div>
           <div style="overflow-x:auto"><table id="upStatTbl"></table></div>
+          <div style="font-size:12px;color:var(--ink-3);margin:16px 0 6px;font-weight:700">시술 항목</div>
+          <div id="upItems"></div>
         </div>
       </section>
 
@@ -502,10 +510,11 @@ function renderUploadStats(){
   UP.forEach(function(u){
     if(!u.up) return;
     var k=_upKey(_upType,u.up); if(!k) return;
-    if(!map[k]) map[k]={tot:{u:0,S:0,A:0,B:0,C:0,D:0,none:0}, own:{}};
+    if(!map[k]) map[k]={tot:{u:0,S:0,A:0,B:0,C:0,D:0,none:0}, own:{}, items:{}};
     var m=map[k], o=u.owner||'(미지정)';
     if(!m.own[o]) m.own[o]={u:0,S:0,A:0,B:0,C:0,D:0,none:0};
     m.tot.u++; m.own[o].u++;
+    var _it=((u.item||"").trim())||"(미기재)"; m.items[_it]=(m.items[_it]||0)+1;
     var g=(u.grade||'').toUpperCase();
     if(['S','A','B','C','D'].indexOf(g)>=0){ m.tot[g]++; m.own[o][g]++; } else { m.tot.none++; m.own[o].none++; }
   });
@@ -522,6 +531,9 @@ function renderUploadStats(){
   var rows=Object.keys(d.own).map(function(o){var x=d.own[o];x.o=o;return x;}).sort(function(a,b){return b.u-a.u;});
   $("#upStatTbl").innerHTML='<thead><tr><th>담당</th><th class="r">업로드</th><th class="r">S</th><th class="r">A</th><th class="r">B</th><th class="r">C</th><th class="r">D</th><th class="r">미평가</th></tr></thead><tbody>'+
     rows.map(function(x){return '<tr><td>'+esc(x.o)+'</td><td class="r num">'+nf(x.u)+'</td><td class="r num">'+nf(x.S)+'</td><td class="r num">'+nf(x.A)+'</td><td class="r num">'+nf(x.B)+'</td><td class="r num">'+nf(x.C)+'</td><td class="r num">'+nf(x.D)+'</td><td class="r num" style="color:var(--ink-3)">'+nf(x.none)+'</td></tr>';}).join('')+'</tbody>';
+  var _its=Object.keys(d.items||{}).map(function(k){return {k:k,n:d.items[k]};}).sort(function(a,b){return b.n-a.n;});
+  var _mx=_its.length?_its[0].n:1;
+  $("#upItems").innerHTML=_its.length?_its.map(function(x){var w=Math.max(4,x.n/_mx*100);return '<div style="display:flex;align-items:center;gap:8px;margin:5px 0"><span style="font-size:12.5px;min-width:120px">'+esc(x.k)+'</span><div style="flex:1;height:14px;background:#eef1f0;border-radius:7px;overflow:hidden"><div style="height:100%;width:'+w+'%;background:var(--signal)"></div></div><span style="font-size:12px;font-weight:700;min-width:28px;text-align:right">'+nf(x.n)+'</span></div>';}).join(""):'<div style="color:var(--ink-3);font-size:13px">기록 없음</div>';
   $("#upStatPrev").disabled=i<=0; $("#upStatNext").disabled=i>=keys.length-1;
   $("#upStatPrev").onclick=function(){var j=keys.indexOf(_upCur);if(j>0){_upCur=keys[j-1];renderUploadStats();}};
   $("#upStatNext").onclick=function(){var j=keys.indexOf(_upCur);if(j<keys.length-1){_upCur=keys[j+1];renderUploadStats();}};
@@ -594,6 +606,45 @@ function renderMyUploads(){
       '<button class="btn sm mu-edit" data-id="'+u.id+'" style="margin-left:auto;padding:3px 12px">수정</button>'+
     '</div>';
   }).join('');
+}
+function renderQuickGrid(){
+  var el=$("#quickGrid"); if(!el) return;
+  var me=OW[ME]||"";
+  var mine=UP.filter(function(u){return u.source==="app" && u.owner===me;});
+  var S=["예약확정","시술완료","1차점검완료","업로드완료","성과집계"];
+  function iv(v){ return esc(v==null?"":v); }
+  function inp(u,f,ty){ return '<input data-id="'+u.id+'" data-f="'+f+'" type="'+(ty||"text")+'" value="'+iv(u[f])+'">'; }
+  function catSel(u){ return '<select data-id="'+u.id+'" data-f="cat">'+["쁘띠","성형"].map(function(o){return '<option'+((u.cat||"쁘띠")===o?" selected":"")+'>'+o+'</option>';}).join("")+'</select>'; }
+  function stSel(u){ var st=(u.stage!=null&&u.stage!=="")?+u.stage:stage(u); return '<select data-id="'+u.id+'" data-f="stage">'+S.map(function(o,i){return '<option value="'+i+'"'+(st===i?" selected":"")+'>'+o+'</option>';}).join("")+'</select>'; }
+  if(!mine.length){ el.innerHTML='<div style="color:var(--ink-3);font-size:13px;padding:8px 0">아직 없어요. "+ 행 추가"로 시작하세요.</div>'; return; }
+  var head='<tr><th>성형/쁘띠</th><th style="min-width:120px">항목</th><th style="min-width:90px">이름</th><th style="min-width:130px">연락처</th><th>시술일</th><th>1차점검</th><th>업로드일</th><th style="min-width:170px">링크</th><th style="min-width:120px">단계</th></tr>';
+  var rows=mine.map(function(u){ return '<tr>'+
+    '<td>'+catSel(u)+'</td><td>'+inp(u,"item")+'</td><td>'+inp(u,"name")+'</td><td>'+inp(u,"phone")+'</td>'+
+    '<td>'+inp(u,"op","date")+'</td><td>'+inp(u,"chk1","date")+'</td><td>'+inp(u,"up","date")+'</td>'+
+    '<td>'+inp(u,"link")+'</td><td>'+stSel(u)+'</td></tr>'; }).join("");
+  el.innerHTML='<table class="qgrid">'+head+rows+'</table>';
+}
+function _quickAddRow(){
+  var owner=OW[ME]||"";
+  var row={owner:owner,stage:0,name:"",cat:"쁘띠",source:"app"};
+  var b=$("#quickAdd"); if(b){b.disabled=true;}
+  window._sb.from("uploads").insert(row).select().then(function(r){
+    if(b){b.disabled=false;}
+    if(r.error){ alert("추가 실패: "+r.error.message); return; }
+    var nid=(r.data&&r.data[0]&&r.data[0].id)||null;
+    UP.push(Object.assign({id:nid,visit:"",op:"",chk1:"",up:"",chk2:"",item:"",phone:"",link:""}, row));
+    renderQuickGrid(); renderUpload(); renderUploadStats(); renderMyUploads();
+    var g=$("#quickGrid"); if(g){ var ins=g.querySelectorAll('input[data-f=\'name\']'); if(ins.length){ ins[ins.length-1].focus(); } }
+  });
+}
+function _quickChange(e){
+  var el=e.target; var id=el.getAttribute&&el.getAttribute("data-id"); var f=el.getAttribute&&el.getAttribute("data-f");
+  if(!id||!f) return;
+  var val=(f==="stage")?parseInt(el.value,10):el.value;
+  var patch={}; patch[f]=val;
+  window._sb.from("uploads").update(patch).eq("id",id).then(function(r){ if(r.error){ alert("저장 실패: "+r.error.message); } });
+  for(var i=0;i<UP.length;i++){ if(UP[i].id==id){ UP[i][f]=val; break; } }
+  renderUpload(); renderUploadStats(); renderDash(); renderMyUploads();
 }
 function renderDash(){
   var last7=dayKeys.slice(-7), avg7=Math.round(last7.reduce(function(a,k){return a+byDay[k];},0)/last7.length);
@@ -871,12 +922,12 @@ window.go2=function(i){ go("db"); $("#dbQ").value=SUM[i].h; renderDb(); detail(i
 function bindSet(){
   $("#cdOwn").addEventListener("input",function(){CD.own=+this.value||0;rules();check($("#hIn").value);});
   $("#cdSelf").addEventListener("input",function(){CD.self=+this.value||0;rules();check($("#hIn").value);});
-  function _setPerson(idx){ ME=+idx; var os=$("#oIn"); if(os)os.value=ME; var vs=$("#viewSel"); if(vs)vs.value=ME; var ms=$("#meSel"); if(ms)ms.value=ME; var of=$("#upFormOwner"); if(of)of.textContent="담당: "+(OW[ME]||""); check($("#hIn").value); renderDash(); if(typeof renderMyUploads==="function")renderMyUploads(); } $("#meSel").addEventListener("change",function(){_setPerson(this.value);}); var _vselH=$("#viewSel"); if(_vselH)_vselH.addEventListener("change",function(){_setPerson(this.value);});
+  function _setPerson(idx){ ME=+idx; var os=$("#oIn"); if(os)os.value=ME; var vs=$("#viewSel"); if(vs)vs.value=ME; var ms=$("#meSel"); if(ms)ms.value=ME; var of=$("#upFormOwner"); if(of)of.textContent="담당: "+(OW[ME]||""); check($("#hIn").value); renderDash(); if(typeof renderMyUploads==="function")renderMyUploads(); if(typeof renderQuickGrid==="function")renderQuickGrid(); } $("#meSel").addEventListener("change",function(){_setPerson(this.value);}); var _vselH=$("#viewSel"); if(_vselH)_vselH.addEventListener("change",function(){_setPerson(this.value);});
   $("#abN").textContent=nf(CT.length); $("#abH").textContent=nf(HS.length); $("#abU").textContent=nf(UP.length);
 }
 
 fillSel(); rules(); tryList(); bindEntry(); bindSet();
-renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); var _mul=document.getElementById('myUpList'); if(_mul)_mul.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-id]'):null; if(b)_upEdit(b.getAttribute('data-id')); }); renderDb(); renderRisk();
+renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); var _mul=document.getElementById('myUpList'); if(_mul)_mul.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-id]'):null; if(b)_upEdit(b.getAttribute('data-id')); }); renderQuickGrid(); var _qa=document.getElementById('quickAdd'); if(_qa)_qa.addEventListener('click',_quickAddRow); var _qg=document.getElementById('quickGrid'); if(_qg)_qg.addEventListener('change',_quickChange); renderDb(); renderRisk();
 $("#dbQ").addEventListener("input",renderDb);
 $("#dbF").addEventListener("change",renderDb);
 $("#dbS").addEventListener("change",renderDb);
