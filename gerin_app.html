@@ -309,7 +309,6 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
           <div class="hd"><h2>내 업로드 관리</h2><span class="note">진행중인 건 클릭해서 수정</span></div>
           <div id="myUpList"></div>
         </div>
-        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:16px" id="upKpi"></div>
         <div class="kb" id="kanban" style="display:none"></div>
         <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:14px;align-items:start;display:none">
           <div class="card pad"><div class="hd"><h2>시술 항목</h2></div><div id="itemBars"></div></div>
@@ -329,6 +328,7 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
               <button class="btn sm" id="upStatNext" style="padding:2px 9px">▶</button>
             </span>
           </div>
+          <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin:12px 0 4px" id="upPeriodKpi"></div>
           <div id="upGradeDist" style="margin-top:8px"></div>
           <div style="overflow-x:auto"><table id="upStatTbl"></table></div>
           <div style="font-size:12px;color:var(--ink-3);margin:16px 0 6px;font-weight:700">시술 항목</div>
@@ -520,9 +520,12 @@ function renderUploadStats(){
   });
   var keys=Object.keys(map).sort();
   ['day','week','month'].forEach(function(t){ var b=$("#upSeg_"+t); if(b){ b.style.fontWeight=(t===_upType?'800':'500'); b.style.color=(t===_upType?'var(--ink)':'var(--ink-3)'); } });
-  if(!keys.length){ $("#upGradeDist").innerHTML='<div style="color:var(--ink-3);font-size:13px">기록 없음</div>'; $("#upStatTbl").innerHTML=''; $("#upStatNote").textContent=''; return; }
+  if(!keys.length){ var _pk0=$("#upPeriodKpi"); if(_pk0)_pk0.innerHTML=kpi("시술 완료","0","인플 기준")+kpi("업로드 완료","0","0%"); $("#upGradeDist").innerHTML='<div style="color:var(--ink-3);font-size:13px">기록 없음</div>'; $("#upStatTbl").innerHTML=''; $("#upStatNote").textContent=''; return; }
   if(keys.indexOf(_upCur)<0) _upCur=keys[keys.length-1];
   var i=keys.indexOf(_upCur), d=map[_upCur];
+  var _opN=UP.filter(function(u){return _upKey(_upType,u.op)===_upCur;}).length;
+  var _upN=d.tot.u;
+  $("#upPeriodKpi").innerHTML=kpi("시술 완료",nf(_opN),"인플 기준")+kpi("업로드 완료",nf(_upN),(_opN?Math.round(_upN/_opN*100)+"%":"—"));
   $("#upStatNote").textContent=_plabel(_upType,_upCur);
   var defs=[['S','#B45309'],['A','#047857'],['B','#2563EB'],['C','#7C3AED'],['D','#64748B'],['none','#9AA5B1']];
   $("#upGradeDist").innerHTML='<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:8px">'+
@@ -619,10 +622,11 @@ function renderQuickGrid(){
   function stSel(u){ var st=(u.stage!=null&&u.stage!=="")?+u.stage:stage(u); return '<select data-id="'+u.id+'" data-f="stage">'+S.map(function(o,i){return '<option value="'+i+'"'+(st===i?" selected":"")+'>'+o+'</option>';}).join("")+'</select>'; }
   function gcQ(u){ var m={views:+u.views||0,comments:+u.comments||0,impc:+u.imp_comments||0,saves:+u.saves||0,shares:+u.shares||0,reposts:+u.reposts||0}; var has=(m.views||m.comments||m.impc||m.saves||m.shares||m.reposts); var t=has?_upScore(m):null, g=has?_upGrade(t):""; return '<td id="scell_'+u.id+'" style="font-size:12px;font-weight:700;white-space:nowrap;color:var(--ink)">'+(has?t:"—")+'</td><td id="gcell_'+u.id+'" style="font-size:12px;font-weight:700;white-space:nowrap;color:var(--ink)">'+(g||"—")+'</td>'; }
   function c2cell(u){ var v=plus14(u.up); return '<td id="c2cell_'+u.id+'" style="font-size:12px;white-space:nowrap;color:var(--ink-2)">'+(v||"—")+'</td>'; }
+  function nameInp(u){ var d=plus14(u.up); var warn=(u.up&&d&&d<=TODAY&&!u.views); var st=warn?' style="background:#fdecea;border-color:#e74c3c;color:#c0392b;font-weight:700" title="2주 경과 · 성과 미입력"':''; return '<input data-id="'+u.id+'" data-f="name" type="text" value="'+iv(u.name)+'"'+st+'>'; }
   if(!mine.length){ el.innerHTML='<div style="color:var(--ink-3);font-size:13px;padding:8px 0">아직 없어요. "+ 행 추가"로 시작하세요.</div>'; return; }
   var head='<tr><th>성형/쁘띠</th><th style="min-width:120px">항목</th><th style="min-width:90px">이름</th><th style="min-width:130px">연락처</th><th>시술일</th><th>1차점검</th><th>업로드일</th><th style="min-width:100px">2주 날짜</th><th style="min-width:170px">링크</th><th style="min-width:120px">단계</th><th style="min-width:90px">2주 조회수</th><th style="min-width:70px">좋아요</th><th style="min-width:70px">총댓글</th><th style="min-width:70px">중요댓글</th><th style="min-width:60px">저장</th><th style="min-width:60px">공유</th><th style="min-width:70px">리포스트</th><th style="min-width:70px">총점</th><th style="min-width:70px">등급</th><th style="width:34px"></th></tr>';
   var rows=mine.map(function(u){ return '<tr>'+
-    '<td>'+catSel(u)+'</td><td>'+inp(u,"item")+'</td><td>'+inp(u,"name")+'</td><td>'+inp(u,"phone")+'</td>'+
+    '<td>'+catSel(u)+'</td><td>'+inp(u,"item")+'</td><td>'+nameInp(u)+'</td><td>'+inp(u,"phone")+'</td>'+
     '<td>'+inp(u,"op","date")+'</td><td>'+inp(u,"chk1","date")+'</td><td>'+inp(u,"up","date")+'</td>'+
     c2cell(u)+
     '<td>'+inp(u,"link")+'</td><td>'+stSel(u)+'</td>'+'<td>'+inp(u,"views","number")+'</td><td>'+inp(u,"likes","number")+'</td><td>'+inp(u,"comments","number")+'</td><td>'+inp(u,"imp_comments","number")+'</td><td>'+inp(u,"saves","number")+'</td><td>'+inp(u,"shares","number")+'</td><td>'+inp(u,"reposts","number")+'</td>'+gcQ(u)+'<td><button class="q-del" data-del="'+u.id+'" title="삭제" style="border:0;background:none;color:#c0392b;cursor:pointer;font-size:16px;line-height:1;padding:2px 6px">×</button></td></tr>'; }).join("");
@@ -671,6 +675,12 @@ function _quickChange(e){
     var c2=plus14(val);
     if(row){ row.chk2=c2; } patch.chk2=c2;
     var c2e=document.getElementById("c2cell_"+id); if(c2e) c2e.textContent=(c2||"—");
+  }
+  if(row && (f==="up"||f==="views")){
+    var g0=$("#quickGrid"); var ni=g0&&g0.querySelector('input[data-id="'+id+'"][data-f="name"]');
+    if(ni){ var dd=plus14(row.up); var w=(row.up&&dd&&dd<=TODAY&&!row.views);
+      if(w){ ni.style.background="#fdecea"; ni.style.borderColor="#e74c3c"; ni.style.color="#c0392b"; ni.style.fontWeight="700"; }
+      else { ni.style.background=""; ni.style.borderColor=""; ni.style.color=""; ni.style.fontWeight=""; } }
   }
   window._sb.from("uploads").update(patch).eq("id",id).then(function(r){ if(r.error){ alert("저장 실패: "+r.error.message); } });
   renderUpload(); renderUploadStats(); renderDash();
@@ -870,12 +880,6 @@ function renderUpload(){
   var S=["예약 확정","시술 완료","1차 점검 완료","업로드 완료","성과 집계"];
   var cols=[[],[],[],[],[]];
   UP.forEach(function(u){ cols[stage(u)].push(u); });
-  var lead=UP.filter(function(u){return u.op&&u.up;}).map(function(u){return days(u.op,u.up);}).sort(function(a,b){return a-b;});
-  var med=lead.length?lead[Math.floor(lead.length/2)]:0;
-  $("#upKpi").innerHTML=kpi("시술 완료",nf(UP.length),"인플 기준")+kpi("업로드 완료",nf(UP.filter(function(u){return u.up;}).length),
-    Math.round(UP.filter(function(u){return u.up;}).length/UP.length*100)+"%")+
-    kpi("시술→업로드",nf(med)+"일","중앙값 · 최장 "+nf(lead[lead.length-1]||0)+"일")+
-    kpi("성과 미집계",nf(UP.filter(function(u){return !u.views;}).length),"지표 입력 필요","alert");
   $("#kanban").innerHTML=cols.map(function(c,i){
     return '<div class="col"><div class="ch">'+S[i]+'<b>'+c.length+'</b></div>'+
       (c.length?c.slice(0,8).map(function(u){
