@@ -273,7 +273,7 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
         <div class="card pad" style="margin-bottom:16px">
           <div class="hd"><h2>빠른 입력 (내 담당)</h2><button class="btn pri" id="quickAdd" style="padding:5px 14px;font-size:13px">+ 행 추가</button></div>
           <div style="font-size:11.5px;color:var(--ink-3);margin:4px 0 10px">칸을 채우면 자동 저장돼요. 시트처럼 쭉 입력하세요. (성과 지표·등급은 아래 폼의 "수정"에서 입력)</div>
-          <div id="quickGrid" style="overflow-x:auto"></div>
+          <div id="quickGrid" style="max-height:440px;overflow:auto"></div>
         </div>
         <div class="card pad" style="margin-bottom:16px">
           <div class="hd"><h2>업로드 등록</h2><span class="note" id="upFormOwner"></span></div>
@@ -617,15 +617,17 @@ function renderQuickGrid(){
   function catSel(u){ return '<select data-id="'+u.id+'" data-f="cat">'+["쁘띠","성형"].map(function(o){return '<option'+((u.cat||"쁘띠")===o?" selected":"")+'>'+o+'</option>';}).join("")+'</select>'; }
   function stSel(u){ var st=(u.stage!=null&&u.stage!=="")?+u.stage:stage(u); return '<select data-id="'+u.id+'" data-f="stage">'+S.map(function(o,i){return '<option value="'+i+'"'+(st===i?" selected":"")+'>'+o+'</option>';}).join("")+'</select>'; }
   if(!mine.length){ el.innerHTML='<div style="color:var(--ink-3);font-size:13px;padding:8px 0">아직 없어요. "+ 행 추가"로 시작하세요.</div>'; return; }
-  var head='<tr><th>성형/쁘띠</th><th style="min-width:120px">항목</th><th style="min-width:90px">이름</th><th style="min-width:130px">연락처</th><th>시술일</th><th>1차점검</th><th>업로드일</th><th style="min-width:170px">링크</th><th style="min-width:120px">단계</th></tr>';
+  var head='<tr><th>성형/쁘띠</th><th style="min-width:120px">항목</th><th style="min-width:90px">이름</th><th style="min-width:130px">연락처</th><th>시술일</th><th>1차점검</th><th>업로드일</th><th style="min-width:170px">링크</th><th style="min-width:120px">단계</th><th style="width:34px"></th></tr>';
   var rows=mine.map(function(u){ return '<tr>'+
     '<td>'+catSel(u)+'</td><td>'+inp(u,"item")+'</td><td>'+inp(u,"name")+'</td><td>'+inp(u,"phone")+'</td>'+
     '<td>'+inp(u,"op","date")+'</td><td>'+inp(u,"chk1","date")+'</td><td>'+inp(u,"up","date")+'</td>'+
-    '<td>'+inp(u,"link")+'</td><td>'+stSel(u)+'</td></tr>'; }).join("");
+    '<td>'+inp(u,"link")+'</td><td>'+stSel(u)+'</td><td><button class="q-del" data-del="'+u.id+'" title="삭제" style="border:0;background:none;color:#c0392b;cursor:pointer;font-size:16px;line-height:1;padding:2px 6px">×</button></td></tr>'; }).join("");
   el.innerHTML='<table class="qgrid">'+head+rows+'</table>';
 }
 function _quickAddRow(){
   var owner=OW[ME]||"";
+  var _mine=UP.filter(function(u){return u.source==="app"&&u.owner===owner;});
+  for(var _i=0;_i<_mine.length;_i++){ if(!(_mine[_i].name||"").trim() && !(_mine[_i].item||"").trim()){ var _g=$("#quickGrid"); var _el=_g&&_g.querySelector('input[data-id="'+_mine[_i].id+'"][data-f="name"]'); if(_el){_el.focus();} return; } }
   var row={owner:owner,stage:0,name:"",cat:"쁘띠",source:"app"};
   var b=$("#quickAdd"); if(b){b.disabled=true;}
   window._sb.from("uploads").insert(row).select().then(function(r){
@@ -636,6 +638,10 @@ function _quickAddRow(){
     renderQuickGrid(); renderUpload(); renderUploadStats(); renderMyUploads();
     var g=$("#quickGrid"); if(g){ var ins=g.querySelectorAll('input[data-f=\'name\']'); if(ins.length){ ins[ins.length-1].focus(); } }
   });
+}
+function _quickDelete(id){
+  if(!confirm("이 줄을 삭제할까요?")) return;
+  window._sb.from("uploads").delete().eq("id",id).then(function(r){ if(r.error){ alert("삭제 실패: "+r.error.message); return; } for(var i=0;i<UP.length;i++){ if(UP[i].id==id){ UP.splice(i,1); break; } } renderQuickGrid(); renderUpload(); renderUploadStats(); renderDash(); renderMyUploads(); });
 }
 function _quickChange(e){
   var el=e.target; var id=el.getAttribute&&el.getAttribute("data-id"); var f=el.getAttribute&&el.getAttribute("data-f");
@@ -927,7 +933,7 @@ function bindSet(){
 }
 
 fillSel(); rules(); tryList(); bindEntry(); bindSet();
-renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); var _mul=document.getElementById('myUpList'); if(_mul)_mul.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-id]'):null; if(b)_upEdit(b.getAttribute('data-id')); }); renderQuickGrid(); var _qa=document.getElementById('quickAdd'); if(_qa)_qa.addEventListener('click',_quickAddRow); var _qg=document.getElementById('quickGrid'); if(_qg)_qg.addEventListener('change',_quickChange); renderDb(); renderRisk();
+renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); var _mul=document.getElementById('myUpList'); if(_mul)_mul.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-id]'):null; if(b)_upEdit(b.getAttribute('data-id')); }); renderQuickGrid(); var _qa=document.getElementById('quickAdd'); if(_qa)_qa.addEventListener('click',_quickAddRow); var _qg=document.getElementById('quickGrid'); if(_qg)_qg.addEventListener('change',_quickChange); if(_qg)_qg.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-del]'):null; if(b)_quickDelete(b.getAttribute('data-del')); }); renderDb(); renderRisk();
 $("#dbQ").addEventListener("input",renderDb);
 $("#dbF").addEventListener("change",renderDb);
 $("#dbS").addEventListener("change",renderDb);
