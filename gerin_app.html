@@ -520,12 +520,16 @@ function renderUploadStats(){
   });
   var keys=Object.keys(map).sort();
   ['day','week','month'].forEach(function(t){ var b=$("#upSeg_"+t); if(b){ b.style.fontWeight=(t===_upType?'800':'500'); b.style.color=(t===_upType?'var(--ink)':'var(--ink-3)'); } });
-  if(!keys.length){ var _pk0=$("#upPeriodKpi"); if(_pk0)_pk0.innerHTML=kpi("시술 완료","0","인플 기준")+kpi("업로드 완료","0","0%"); $("#upGradeDist").innerHTML='<div style="color:var(--ink-3);font-size:13px">기록 없음</div>'; $("#upStatTbl").innerHTML=''; $("#upStatNote").textContent=''; return; }
-  if(keys.indexOf(_upCur)<0) _upCur=keys[keys.length-1];
+  if(!keys.length){ var _pk0=$("#upPeriodKpi"); if(_pk0)_pk0.innerHTML=kpi("시술 완료","0","시술일 기준")+kpi("업로드 완료","0","업로드일 기준"); $("#upGradeDist").innerHTML='<div style="color:var(--ink-3);font-size:13px">기록 없음</div>'; $("#upStatTbl").innerHTML=''; $("#upStatNote").textContent=''; return; }
+  if(keys.indexOf(_upCur)<0){
+    var _tk=_upKey(_upType,TODAY);
+    if(keys.indexOf(_tk)>=0){ _upCur=_tk; }
+    else { var _past=keys.filter(function(k){return k<=_tk;}); _upCur=_past.length?_past[_past.length-1]:keys[keys.length-1]; }
+  }
   var i=keys.indexOf(_upCur), d=map[_upCur];
   var _opN=UP.filter(function(u){return _upKey(_upType,u.op)===_upCur;}).length;
   var _upN=d.tot.u;
-  $("#upPeriodKpi").innerHTML=kpi("시술 완료",nf(_opN),"인플 기준")+kpi("업로드 완료",nf(_upN),(_opN?Math.round(_upN/_opN*100)+"%":"—"));
+  $("#upPeriodKpi").innerHTML=kpi("시술 완료",nf(_opN),"시술일 기준")+kpi("업로드 완료",nf(_upN),"업로드일 기준");
   $("#upStatNote").textContent=_plabel(_upType,_upCur);
   var defs=[['S','#B45309'],['A','#047857'],['B','#2563EB'],['C','#7C3AED'],['D','#64748B'],['none','#9AA5B1']];
   $("#upGradeDist").innerHTML='<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:8px">'+
