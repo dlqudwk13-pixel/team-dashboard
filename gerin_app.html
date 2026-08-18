@@ -226,6 +226,7 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
                 <div><label class="fl" for="tIn">관심 시술</label><select id="tIn"></select></div>
               </div>
               <div id="verdict" style="margin-bottom:12px"></div>
+              <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13.5px;cursor:pointer;user-select:none"><input type="checkbox" id="rsvIn" style="width:16px;height:16px;cursor:pointer"><span>오늘 예약 성사 <span style="color:var(--ink-3)">(예약수 +1)</span></span></label>
               <div style="display:flex;gap:7px">
                 <button class="btn pri" id="saveBtn" disabled>등록</button>
                 <button class="btn" id="clrBtn">비우기</button>
@@ -816,13 +817,14 @@ function bindEntry(){
   $("#saveBtn").addEventListener("click",function(){
     if(!picked||picked.st==="stop")return;
     var _oi=+$("#oIn").value,_h=picked.h,_pc=$("#tIn").value;
-    if(window._sb){window._sb.from("contacts").insert({handle:_h,owner:OW[_oi],date:TODAY,reserve:0,procedure:_pc,memo:"",source:"app"}).then(function(rr){if(rr.error)alert("저장 실패: "+rr.error.message);});}
-    var _hi=HS.indexOf(_h);if(_hi<0){_hi=HS.length;HS.push(_h);}var _rec=[_hi,TODAY,_oi,0,""];CT.push(_rec);if(IDX[_hi])IDX[_hi].push(_rec);else IDX[_hi]=[_rec];
-    todayAdded.unshift({h:picked.h,o:OW[+$("#oIn").value],t:$("#tIn").value,st:picked.st});
+    var _rsv=($("#rsvIn")&&$("#rsvIn").checked)?1:0;
+    if(window._sb){window._sb.from("contacts").insert({handle:_h,owner:OW[_oi],date:TODAY,reserve:_rsv,procedure:_pc,memo:"",source:"app"}).then(function(rr){if(rr.error)alert("저장 실패: "+rr.error.message);});}
+    var _hi=HS.indexOf(_h);if(_hi<0){_hi=HS.length;HS.push(_h);}var _rec=[_hi,TODAY,_oi,_rsv,""];CT.push(_rec);if(IDX[_hi])IDX[_hi].push(_rec);else IDX[_hi]=[_rec];
+    todayAdded.unshift({h:picked.h,o:OW[+$("#oIn").value],t:$("#tIn").value,st:picked.st,rsv:_rsv});
     $("#todayN").textContent=todayAdded.length+"건";
     $("#todayList").innerHTML=todayAdded.map(function(a){
-      return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">'+esc(a.h)+'</span><span class="tag">'+esc(a.t)+'</span><span style="margin-left:auto;font-size:11.5px;color:var(--ink-3)">'+esc(a.o)+'</span>'+(a.st==="warn"?'<span class="tag wn">중복 확인</span>':"")+'</div>';}).join("");
-    $("#hIn").value=""; check("");
+      return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">'+esc(a.h)+'</span><span class="tag">'+esc(a.t)+'</span>'+(a.rsv?'<span class="tag ok">예약</span>':"")+'<span style="margin-left:auto;font-size:11.5px;color:var(--ink-3)">'+esc(a.o)+'</span>'+(a.st==="warn"?'<span class="tag wn">중복 확인</span>':"")+'</div>';}).join("");
+    $("#hIn").value=""; if($("#rsvIn"))$("#rsvIn").checked=false; check(""); if(typeof renderDash==="function")renderDash();
   });
 
   /* ═══ 일괄 검사·등록 ═══ */
