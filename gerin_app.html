@@ -234,7 +234,7 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
             </div>
             <div class="card pad" style="margin-bottom:12px">
               <div class="hd"><h2>여러 개 한번에</h2><span class="note" id="bulkSum"></span></div>
-              <div style="font-size:11.5px;color:var(--ink-3);margin-bottom:8px">위 <b>담당</b>·<b>관심 시술</b>이 아래 전체에 적용돼요.</div>
+              <div style="font-size:11.5px;color:var(--ink-3);margin-bottom:8px">위 <b>담당</b>·<b>관심 시술</b>이 아래 전체에 적용돼요. 검사 후 예약된 계정은 옆 <b>예약</b> 체크하면 예약수에 잡혀요.</div>
               <textarea id="bulkIn" rows="5" placeholder="핸들을 줄바꿈으로 여러 개 붙여넣기 — @는 없어도 돼요&#10;예:&#10;dandell_e&#10;mmminjoo" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:8px;font-family:var(--mono);font-size:12.5px;resize:vertical"></textarea>
               <div style="display:flex;gap:7px;margin-top:8px">
                 <button class="btn" id="bulkChk">검사</button>
@@ -851,23 +851,24 @@ function bindEntry(){
     $("#bulkSum").textContent=_bulk.length+"개 · 등록가능 "+ok+" (경고 "+wn+") · 차단 "+sp;
     $("#bulkRes").innerHTML=_bulk.map(function(x){
       var s=x.st==="stop"?{t:"차단",bg:"#fdeaea",c:"#c0392b"}:x.st==="warn"?{t:"경고",bg:"#fff3df",c:"#b8791b"}:{t:"등록가능",bg:"#e7f6ee",c:"#0e7a5f"};
-      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">@'+esc(x.h)+'</span><span style="margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+s.bg+';color:'+s.c+'">'+s.t+'</span><span style="font-size:11px;color:var(--ink-3);min-width:110px;text-align:right">'+esc(x.msg)+'</span></div>';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">@'+esc(x.h)+'</span>'+(x.st!=="stop"?'<label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2);cursor:pointer;margin-left:10px;user-select:none"><input type="checkbox" class="bulk-rsv" data-h="'+esc(x.h)+'" style="width:14px;height:14px;cursor:pointer">예약</label>':"")+'<span style="margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+s.bg+';color:'+s.c+'">'+s.t+'</span><span style="font-size:11px;color:var(--ink-3);min-width:110px;text-align:right">'+esc(x.msg)+'</span></div>';
     }).join("");
     $("#bulkSave").disabled=(ok===0);
   }
   function _renderToday(){
     $("#todayN").textContent=todayAdded.length+"건";
-    $("#todayList").innerHTML=todayAdded.map(function(a){ return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">'+esc(a.h)+'</span><span class="tag">'+esc(a.t)+'</span><span style="margin-left:auto;font-size:11.5px;color:var(--ink-3)">'+esc(a.o)+'</span>'+(a.st==="warn"?'<span class="tag wn">중복 확인</span>':"")+'</div>';}).join("");
+    $("#todayList").innerHTML=todayAdded.map(function(a){ return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">'+esc(a.h)+'</span><span class="tag">'+esc(a.t)+'</span>'+(a.rsv?'<span class="tag ok">예약</span>':"")+'<span style="margin-left:auto;font-size:11.5px;color:var(--ink-3)">'+esc(a.o)+'</span>'+(a.st==="warn"?'<span class="tag wn">중복 확인</span>':"")+'</div>';}).join("");
   }
   function _bulkSave(){
     var oi=+$("#oIn").value, proc=$("#tIn").value;
     var save=_bulk.filter(function(x){return x.st!=="stop";});
     if(!save.length) return;
-    var rows=save.map(function(x){ return {handle:x.h,owner:OW[oi],date:TODAY,reserve:0,procedure:proc,memo:"",source:"app"}; });
+    var rsvSet={}; var _cbs=document.querySelectorAll('#bulkRes .bulk-rsv'); for(var _ci=0;_ci<_cbs.length;_ci++){ if(_cbs[_ci].checked) rsvSet[_cbs[_ci].getAttribute('data-h')]=1; }
+    var rows=save.map(function(x){ return {handle:x.h,owner:OW[oi],date:TODAY,reserve:(rsvSet[x.h]?1:0),procedure:proc,memo:"",source:"app"}; });
     var b=$("#bulkSave"); b.disabled=true; b.textContent="등록 중…";
     function done(){
-      save.forEach(function(x){ var hi=HS.indexOf(x.h); if(hi<0){hi=HS.length;HS.push(x.h);} var rec=[hi,TODAY,oi,0,""]; CT.push(rec); if(IDX[hi])IDX[hi].push(rec); else IDX[hi]=[rec]; todayAdded.unshift({h:x.h,o:OW[oi],t:proc,st:x.st}); });
-      _renderToday();
+      save.forEach(function(x){ var rv=rsvSet[x.h]?1:0; var hi=HS.indexOf(x.h); if(hi<0){hi=HS.length;HS.push(x.h);} var rec=[hi,TODAY,oi,rv,""]; CT.push(rec); if(IDX[hi])IDX[hi].push(rec); else IDX[hi]=[rec]; todayAdded.unshift({h:x.h,o:OW[oi],t:proc,st:x.st,rsv:rv}); });
+      _renderToday(); if(typeof renderDash==="function")renderDash();
       $("#bulkIn").value=""; $("#bulkRes").innerHTML=""; $("#bulkSum").textContent=""; _bulk=[]; b.textContent="검사된 것 모두 등록";
       alert(save.length+"건 등록 완료!");
     }
