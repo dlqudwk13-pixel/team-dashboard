@@ -241,7 +241,14 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
       <!-- ── 업로드 관리 ── -->
       <section id="v-upload" class="hide">
         <div class="card pad" style="margin-bottom:16px">
-          <div class="hd"><h2>빠른 입력 (내 담당)</h2><button class="btn pri" id="quickAdd" style="padding:5px 14px;font-size:13px">+ 행 추가</button></div>
+          <div class="hd"><h2>빠른 입력 (내 담당)</h2>
+            <span style="display:flex;align-items:center;gap:6px;margin-left:auto">
+              <label style="font-size:11.5px;color:var(--ink-3)">정렬</label>
+              <select id="qSortKey" style="padding:4px 8px;border:1px solid var(--line);border-radius:7px;font-size:12px;font-family:inherit"><option value="op">시술일</option><option value="up">업로드일</option></select>
+              <select id="qSortDir" style="padding:4px 8px;border:1px solid var(--line);border-radius:7px;font-size:12px;font-family:inherit"><option value="desc">최신순</option><option value="asc">오래된순</option></select>
+              <button class="btn pri" id="quickAdd" style="padding:5px 14px;font-size:13px">+ 행 추가</button>
+            </span>
+          </div>
           <div style="font-size:11.5px;color:var(--ink-3);margin:4px 0 10px">칸을 채우면 자동 저장돼요. 시트처럼 쭉 입력하세요. 시술일을 넣으면 1차점검이 일주일 뒤로, 업로드일을 넣으면 2주 날짜가 자동으로 채워지고, 오른쪽 지표(2주 조회수·좋아요·댓글 등)를 넣으면 총점·등급이 자동으로 나와요.</div>
           <div id="quickGrid" style="max-height:440px;overflow:auto"></div>
         </div>
@@ -614,7 +621,10 @@ function renderQuickGrid(){
   var me=OW[ME]||"";
   var mine=UP.filter(function(u){return u.source==="app" && u.owner===me;});
   function _has(u){ return (u.name||u.item||u.op||u.up||u.link||u.phone)?1:0; }
-  mine.sort(function(a,b){ var ca=_has(a),cb=_has(b); if(ca!==cb) return cb-ca; var da=(a.op||a.up||""),db=(b.op||b.up||""); return da<db?1:(da>db?-1:0); });
+  var _skE=$("#qSortKey"), _sdE=$("#qSortDir"); var SK=_skE?_skE.value:"op", SD=_sdE?_sdE.value:"desc";
+  mine.sort(function(a,b){ var ca=_has(a),cb=_has(b); if(ca!==cb) return ca-cb;
+    var ka=(SK==="up"?(a.up||a.op||""):(a.op||a.up||"")), kb=(SK==="up"?(b.up||b.op||""):(b.op||b.up||""));
+    if(ka===kb) return 0; var r=ka<kb?-1:1; return SD==="asc"?r:-r; });
   var S=["예약확정","시술완료","1차점검완료","업로드완료","성과집계"];
   function iv(v){ return esc(v==null?"":v); }
   function inp(u,f,ty){ return '<input data-id="'+u.id+'" data-f="'+f+'" type="'+(ty||"text")+'" value="'+iv(u[f])+'">'; }
@@ -644,7 +654,7 @@ function _quickAddRow(){
     var nid=(r.data&&r.data[0]&&r.data[0].id)||null;
     UP.push(Object.assign({id:nid,visit:"",op:"",chk1:"",up:"",chk2:"",item:"",phone:"",link:""}, row));
     renderQuickGrid(); renderUpload(); renderUploadStats(); renderMyUploads();
-    var g=$("#quickGrid"); if(g){ var ins=g.querySelectorAll('input[data-f=\'name\']'); if(ins.length){ ins[ins.length-1].focus(); } }
+    var g=$("#quickGrid"); if(g){ var ins=g.querySelectorAll('input[data-f=\'name\']'); if(ins.length){ ins[0].focus(); ins[0].scrollIntoView({block:"nearest"}); } }
   });
 }
 function _quickDelete(id){
@@ -1008,12 +1018,14 @@ window.go2=function(i){ go("db"); $("#dbQ").value=SUM[i].h; renderDb(); detail(i
 function bindSet(){
   $("#cdOwn").addEventListener("input",function(){CD.own=+this.value||0;rules();});
   $("#cdSelf").addEventListener("input",function(){CD.self=+this.value||0;rules();});
-  function _setPerson(idx){ ME=+idx; var os=$("#oIn"); if(os)os.value=ME; var vs=$("#viewSel"); if(vs)vs.value=ME; var ms=$("#meSel"); if(ms)ms.value=ME; var of=$("#upFormOwner"); if(of)of.textContent="담당: "+(OW[ME]||""); check($("#hIn").value); renderDash(); if(typeof renderMyUploads==="function")renderMyUploads(); if(typeof renderQuickGrid==="function")renderQuickGrid(); } $("#meSel").addEventListener("change",function(){_setPerson(this.value);}); var _vselH=$("#viewSel"); if(_vselH)_vselH.addEventListener("change",function(){_setPerson(this.value);});
+  function _setPerson(idx){ ME=+idx; var os=$("#oIn"); if(os)os.value=ME; var vs=$("#viewSel"); if(vs)vs.value=ME; var ms=$("#meSel"); if(ms)ms.value=ME; var of=$("#upFormOwner"); if(of)of.textContent="담당: "+(OW[ME]||""); renderDash(); if(typeof renderMyUploads==="function")renderMyUploads(); if(typeof renderQuickGrid==="function")renderQuickGrid(); } $("#meSel").addEventListener("change",function(){_setPerson(this.value);}); var _vselH=$("#viewSel"); if(_vselH)_vselH.addEventListener("change",function(){_setPerson(this.value);});
   $("#abN").textContent=nf(CT.length); $("#abH").textContent=nf(HS.length); $("#abU").textContent=nf(UP.length);
 }
 
 fillSel(); rules(); tryList(); bindEntry(); bindSet();
-renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); var _mul=document.getElementById('myUpList'); if(_mul)_mul.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-id]'):null; if(b)_upEdit(b.getAttribute('data-id')); }); renderQuickGrid(); var _qa=document.getElementById('quickAdd'); if(_qa)_qa.addEventListener('click',_quickAddRow); var _qg=document.getElementById('quickGrid'); if(_qg)_qg.addEventListener('change',_quickChange); if(_qg)_qg.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-del]'):null; if(b)_quickDelete(b.getAttribute('data-del')); }); renderDb(); renderRisk(); renderBlList(); renderApprovals();
+renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); var _mul=document.getElementById('myUpList'); if(_mul)_mul.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-id]'):null; if(b)_upEdit(b.getAttribute('data-id')); }); renderQuickGrid(); var _qa=document.getElementById('quickAdd'); if(_qa)_qa.addEventListener('click',_quickAddRow);
+var _qsk=document.getElementById('qSortKey'); if(_qsk)_qsk.addEventListener('change',renderQuickGrid);
+var _qsd=document.getElementById('qSortDir'); if(_qsd)_qsd.addEventListener('change',renderQuickGrid); var _qg=document.getElementById('quickGrid'); if(_qg)_qg.addEventListener('change',_quickChange); if(_qg)_qg.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-del]'):null; if(b)_quickDelete(b.getAttribute('data-del')); }); renderDb(); renderRisk(); renderBlList(); renderApprovals();
 var _apl=document.getElementById('apprList'); if(_apl)_apl.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-name]'):null; if(b)_apprSet(b.getAttribute('data-name'), b.getAttribute('data-v')==='1'); });
 var _bla=document.getElementById('blAddBtn'); if(_bla)_bla.addEventListener('click',_blAdd);
 var _blt=document.getElementById('blTbl'); if(_blt)_blt.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-h]'):null; if(b)_blDel(b.getAttribute('data-h')); });
