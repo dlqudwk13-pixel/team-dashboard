@@ -811,6 +811,7 @@ function bindEntry(){
     var bl=blMap[q], lastOther=null,lastSelf=null;
     L.forEach(function(c){ if(c[2]===oi){ if(!lastSelf||c[1]>lastSelf[1])lastSelf=c; } else if(!lastOther||c[1]>lastOther[1]) lastOther=c; });
     if(bl) return {h:q,st:"stop",msg:"블랙리스트"+(bl.reason?" · "+bl.reason:"")};
+    if(lastSelf&&lastSelf[1]===TODAY) return {h:q,st:"dup",msg:"오늘 이미 등록됨"};
     if(lastOther&&days(lastOther[1],TODAY)<=CD.own) return {h:q,st:"warn",msg:OW[lastOther[2]]+" 담당 "+days(lastOther[1],TODAY)+"일 전"};
     if(lastSelf&&days(lastSelf[1],TODAY)<=CD.self) return {h:q,st:"warn",msg:"본인 "+days(lastSelf[1],TODAY)+"일 전 재컨텍"};
     if(L.length) return {h:q,st:"ok",msg:L.length+"회 이력 · 쿨다운 경과"};
@@ -823,13 +824,15 @@ function bindEntry(){
     var seen={},list=[]; lines.forEach(function(h){ if(!seen[h]){seen[h]=1;list.push(h);} });
     var oi=+$("#oIn").value;
     _bulk=list.map(function(h){ return _verdict(h,oi); });
-    var ok=_bulk.filter(function(x){return x.st!=="stop";}).length;
+    var ok=_bulk.filter(function(x){return x.st==="ok"||x.st==="warn";}).length;
     var wn=_bulk.filter(function(x){return x.st==="warn";}).length;
     var sp=_bulk.filter(function(x){return x.st==="stop";}).length;
-    $("#bulkSum").textContent=_bulk.length+"개 · 등록가능 "+ok+" (경고 "+wn+") · 차단 "+sp;
+    var dp=_bulk.filter(function(x){return x.st==="dup";}).length;
+    $("#bulkSum").textContent=_bulk.length+"개 · 등록가능 "+ok+" (경고 "+wn+") · 차단 "+sp+(dp?" · 오늘중복 "+dp:"");
     $("#bulkRes").innerHTML=_bulk.map(function(x){
-      var s=x.st==="stop"?{t:"차단",bg:"#fdeaea",c:"#c0392b"}:x.st==="warn"?{t:"경고",bg:"#fff3df",c:"#b8791b"}:{t:"등록가능",bg:"#e7f6ee",c:"#0e7a5f"};
-      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">@'+esc(x.h)+'</span>'+(x.st!=="stop"?'<label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2);cursor:pointer;margin-left:10px;user-select:none"><input type="checkbox" class="bulk-rsv" data-h="'+esc(x.h)+'" style="width:14px;height:14px;cursor:pointer">예약</label>':"")+(x.st!=="stop"?'<input type="text" class="bulk-proc" data-h="'+esc(x.h)+'" placeholder="시술명" style="margin-left:8px;width:130px;padding:3px 8px;border:1px solid var(--line);border-radius:6px;font-size:11.5px;font-family:inherit">':"")+'<span style="margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+s.bg+';color:'+s.c+'">'+s.t+'</span><span style="font-size:11px;color:var(--ink-3);min-width:110px;text-align:right">'+esc(x.msg)+'</span></div>';
+      var reg=(x.st==="ok"||x.st==="warn");
+      var s=x.st==="stop"?{t:"차단",bg:"#fdeaea",c:"#c0392b"}:x.st==="dup"?{t:"오늘 등록됨",bg:"#eef1f0",c:"#7a8686"}:x.st==="warn"?{t:"경고",bg:"#fff3df",c:"#b8791b"}:{t:"등록가능",bg:"#e7f6ee",c:"#0e7a5f"};
+      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">@'+esc(x.h)+'</span>'+(reg?'<label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2);cursor:pointer;margin-left:10px;user-select:none"><input type="checkbox" class="bulk-rsv" data-h="'+esc(x.h)+'" style="width:14px;height:14px;cursor:pointer">예약</label>':"")+(reg?'<input type="text" class="bulk-proc" data-h="'+esc(x.h)+'" placeholder="시술명" style="margin-left:8px;width:130px;padding:3px 8px;border:1px solid var(--line);border-radius:6px;font-size:11.5px;font-family:inherit">':"")+'<span style="margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+s.bg+';color:'+s.c+'">'+s.t+'</span><span style="font-size:11px;color:var(--ink-3);min-width:110px;text-align:right">'+esc(x.msg)+'</span></div>';
     }).join("");
     $("#bulkSave").disabled=(ok===0);
   }
@@ -839,7 +842,7 @@ function bindEntry(){
   }
   function _bulkSave(){
     var oi=+$("#oIn").value;
-    var save=_bulk.filter(function(x){return x.st!=="stop";});
+    var save=_bulk.filter(function(x){return x.st==="ok"||x.st==="warn";});
     if(!save.length) return;
     var rsvSet={}; var _cbs=document.querySelectorAll('#bulkRes .bulk-rsv'); for(var _ci=0;_ci<_cbs.length;_ci++){ if(_cbs[_ci].checked) rsvSet[_cbs[_ci].getAttribute('data-h')]=1; }
     var procMap={}; var _ps=document.querySelectorAll('#bulkRes .bulk-proc'); for(var _pi=0;_pi<_ps.length;_pi++){ procMap[_ps[_pi].getAttribute('data-h')]=(_ps[_pi].value||"").trim(); }
