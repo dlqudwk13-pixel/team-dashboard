@@ -216,31 +216,15 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
           <div>
             <div class="card pad" style="margin-bottom:12px">
               <div class="hd"><h2>컨텍 등록</h2><span class="note" id="cooldownNote"></span></div>
-              <div style="position:relative;margin-bottom:12px">
-                <label class="fl" for="hIn">인스타 계정</label>
-                <input type="text" id="hIn" placeholder="핸들 입력 — 예: dandell_e" autocomplete="off" spellcheck="false" style="font-family:var(--mono)">
-                <div class="sug hide" id="sug"></div>
-              </div>
-              <div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:12px">
-                <div><label class="fl" for="oIn">담당</label><select id="oIn"></select></div>
-                <div><label class="fl" for="tIn">관심 시술</label><select id="tIn"></select></div>
-              </div>
-              <div id="verdict" style="margin-bottom:12px"></div>
-              <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13.5px;cursor:pointer;user-select:none"><input type="checkbox" id="rsvIn" style="width:16px;height:16px;cursor:pointer"><span>오늘 예약 성사 <span style="color:var(--ink-3)">(예약수 +1)</span></span></label>
-              <div style="display:flex;gap:7px">
-                <button class="btn pri" id="saveBtn" disabled>등록</button>
-                <button class="btn" id="clrBtn">비우기</button>
-              </div>
-            </div>
-            <div class="card pad" style="margin-bottom:12px">
-              <div class="hd"><h2>여러 개 한번에</h2><span class="note" id="bulkSum"></span></div>
-              <div style="font-size:11.5px;color:var(--ink-3);margin-bottom:8px">위 <b>담당</b>·<b>관심 시술</b>이 아래 전체에 적용돼요. 검사 후 예약된 계정은 옆 <b>예약</b> 체크하면 예약수에 잡혀요.</div>
+              <div style="max-width:260px;margin-bottom:12px"><label class="fl" for="oIn">담당 (아래 전체 공통)</label><select id="oIn"></select></div>
+              <div style="font-size:11.5px;color:var(--ink-3);margin-bottom:8px">핸들/링크를 줄바꿈으로 여러 개 붙여넣고 <b>검사</b> → 각 줄에서 <b>예약</b>·<b>시술명</b> 채우고 <b>등록</b>하세요.</div>
               <textarea id="bulkIn" rows="5" placeholder="핸들을 줄바꿈으로 여러 개 붙여넣기 — @는 없어도 돼요&#10;예:&#10;dandell_e&#10;mmminjoo" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:8px;font-family:var(--mono);font-size:12.5px;resize:vertical"></textarea>
-              <div style="display:flex;gap:7px;margin-top:8px">
+              <div style="display:flex;gap:7px;margin-top:8px;align-items:center">
                 <button class="btn" id="bulkChk">검사</button>
                 <button class="btn pri" id="bulkSave" disabled>검사된 것 모두 등록</button>
+                <span class="note" id="bulkSum" style="margin-left:auto"></span>
               </div>
-              <div id="bulkRes" style="margin-top:10px;max-height:280px;overflow:auto"></div>
+              <div id="bulkRes" style="margin-top:10px;max-height:360px;overflow:auto"></div>
             </div>
             <div class="card pad">
               <div class="hd"><h2>오늘 등록</h2><span class="note" id="todayN">0건</span></div>
@@ -250,10 +234,6 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
           <div class="card pad">
             <div class="hd"><h2>검사 규칙</h2></div>
             <div id="rulesBox" style="font-size:12.5px;color:var(--ink-2);line-height:2"></div>
-            <div style="border-top:1px solid var(--line);margin-top:13px;padding-top:13px">
-              <div class="eyebrow">시도해볼 계정</div>
-              <div id="tryList" style="display:flex;flex-direction:column;gap:5px"></div>
-            </div>
           </div>
         </div>
       </section>
@@ -633,6 +613,8 @@ function renderQuickGrid(){
   var el=$("#quickGrid"); if(!el) return;
   var me=OW[ME]||"";
   var mine=UP.filter(function(u){return u.source==="app" && u.owner===me;});
+  function _has(u){ return (u.name||u.item||u.op||u.up||u.link||u.phone)?1:0; }
+  mine.sort(function(a,b){ var ca=_has(a),cb=_has(b); if(ca!==cb) return cb-ca; var da=(a.up||a.op||""),db=(b.up||b.op||""); return da<db?1:(da>db?-1:0); });
   var S=["예약확정","시술완료","1차점검완료","업로드완료","성과집계"];
   function iv(v){ return esc(v==null?"":v); }
   function inp(u,f,ty){ return '<input data-id="'+u.id+'" data-f="'+f+'" type="'+(ty||"text")+'" value="'+iv(u[f])+'">'; }
@@ -743,7 +725,7 @@ var TX=["얼굴 갸름주사","어깨필러","귀+인중","비절개 눈밑지",
 var picked=null, todayAdded=[];
 function fillSel(){
   $("#oIn").innerHTML=OW.map(function(o,i){return '<option value="'+i+'"'+(i===ME?" selected":"")+'>'+esc(o)+'</option>';}).join("");
-  $("#tIn").innerHTML=TX.map(function(t){return '<option>'+esc(t)+'</option>';}).join("");
+  var _tI=$("#tIn"); if(_tI)_tI.innerHTML=TX.map(function(t){return '<option>'+esc(t)+'</option>';}).join("");
   $("#meSel").innerHTML=OW.map(function(o,i){return '<option value="'+i+'"'+(i===ME?" selected":"")+'>'+esc(o)+'</option>';}).join("");
   var _vsE=$("#viewSel"); if(_vsE)_vsE.innerHTML=OW.map(function(o,i){return '<option value="'+i+'"'+(i===ME?" selected":"")+'>'+esc(o)+'</option>';}).join("");
 }
@@ -762,13 +744,14 @@ function tryList(){
   var k=SUM.filter(function(s){return s.bk>0;}).slice(0,1);
   var n=["sooyeon_daily_new"];
   var set=b.concat(d).concat(k).map(function(s){return s.h;}).concat(n);
-  $("#tryList").innerHTML=set.map(function(h){return '<button class="btn sm mono" style="text-align:left;justify-content:flex-start" onclick="pick(\''+h+'\')">'+esc(h)+'</button>';}).join("");
+  var _tl=$("#tryList"); if(_tl)_tl.innerHTML=set.map(function(h){return '<button class="btn sm mono" style="text-align:left;justify-content:flex-start" onclick="pick(\''+h+'\')">'+esc(h)+'</button>';}).join("");
 }
-window.pick=function(h){ $("#hIn").value=h; $("#sug").classList.add("hide"); check(h); };
+window.pick=function(h){ var _hi=$("#hIn"); if(_hi)_hi.value=h; var _sg=$("#sug"); if(_sg)_sg.classList.add("hide"); check(h); };
 
 function check(q){
   q=(q||"").trim().toLowerCase().replace(/^@/,"");
   var box=$("#verdict"), btn=$("#saveBtn");
+  if(!box||!btn) return;
   if(!q){ box.innerHTML=""; btn.disabled=true; picked=null; return; }
   var i=HS.indexOf(q), L=i>=0?(IDX[i]||[]).slice().sort(function(a,b){return a[1]<b[1]?1:-1;}):[];
   var bl=blMap[q], oi=+$("#oIn").value;
@@ -810,22 +793,7 @@ function suggest(q){
   s.classList.remove("hide");
 }
 function bindEntry(){
-  $("#hIn").addEventListener("input",function(){suggest(this.value);check(this.value);});
-  $("#hIn").addEventListener("blur",function(){setTimeout(function(){$("#sug").classList.add("hide");},160);});
-  $("#oIn").addEventListener("change",function(){check($("#hIn").value);});
-  $("#clrBtn").addEventListener("click",function(){$("#hIn").value="";check("");});
-  $("#saveBtn").addEventListener("click",function(){
-    if(!picked||picked.st==="stop")return;
-    var _oi=+$("#oIn").value,_h=picked.h,_pc=$("#tIn").value;
-    var _rsv=($("#rsvIn")&&$("#rsvIn").checked)?1:0;
-    if(window._sb){window._sb.from("contacts").insert({handle:_h,owner:OW[_oi],date:TODAY,reserve:_rsv,procedure:_pc,memo:"",source:"app"}).then(function(rr){if(rr.error)alert("저장 실패: "+rr.error.message);});}
-    var _hi=HS.indexOf(_h);if(_hi<0){_hi=HS.length;HS.push(_h);}var _rec=[_hi,TODAY,_oi,_rsv,""];CT.push(_rec);if(IDX[_hi])IDX[_hi].push(_rec);else IDX[_hi]=[_rec];
-    todayAdded.unshift({h:picked.h,o:OW[+$("#oIn").value],t:$("#tIn").value,st:picked.st,rsv:_rsv});
-    $("#todayN").textContent=todayAdded.length+"건";
-    $("#todayList").innerHTML=todayAdded.map(function(a){
-      return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">'+esc(a.h)+'</span><span class="tag">'+esc(a.t)+'</span>'+(a.rsv?'<span class="tag ok">예약</span>':"")+'<span style="margin-left:auto;font-size:11.5px;color:var(--ink-3)">'+esc(a.o)+'</span>'+(a.st==="warn"?'<span class="tag wn">중복 확인</span>':"")+'</div>';}).join("");
-    $("#hIn").value=""; if($("#rsvIn"))$("#rsvIn").checked=false; check(""); if(typeof renderDash==="function")renderDash();
-  });
+  var _oInEl=$("#oIn"); if(_oInEl) _oInEl.addEventListener("change",function(){ if((($("#bulkIn")||{}).value||"").trim()) _bulkCheck(); });
 
   /* ═══ 일괄 검사·등록 ═══ */
   function _verdict(q,oi){
@@ -851,7 +819,7 @@ function bindEntry(){
     $("#bulkSum").textContent=_bulk.length+"개 · 등록가능 "+ok+" (경고 "+wn+") · 차단 "+sp;
     $("#bulkRes").innerHTML=_bulk.map(function(x){
       var s=x.st==="stop"?{t:"차단",bg:"#fdeaea",c:"#c0392b"}:x.st==="warn"?{t:"경고",bg:"#fff3df",c:"#b8791b"}:{t:"등록가능",bg:"#e7f6ee",c:"#0e7a5f"};
-      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">@'+esc(x.h)+'</span>'+(x.st!=="stop"?'<label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2);cursor:pointer;margin-left:10px;user-select:none"><input type="checkbox" class="bulk-rsv" data-h="'+esc(x.h)+'" style="width:14px;height:14px;cursor:pointer">예약</label>':"")+'<span style="margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+s.bg+';color:'+s.c+'">'+s.t+'</span><span style="font-size:11px;color:var(--ink-3);min-width:110px;text-align:right">'+esc(x.msg)+'</span></div>';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">@'+esc(x.h)+'</span>'+(x.st!=="stop"?'<label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2);cursor:pointer;margin-left:10px;user-select:none"><input type="checkbox" class="bulk-rsv" data-h="'+esc(x.h)+'" style="width:14px;height:14px;cursor:pointer">예약</label>':"")+(x.st!=="stop"?'<input type="text" class="bulk-proc" data-h="'+esc(x.h)+'" placeholder="시술명" style="margin-left:8px;width:130px;padding:3px 8px;border:1px solid var(--line);border-radius:6px;font-size:11.5px;font-family:inherit">':"")+'<span style="margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+s.bg+';color:'+s.c+'">'+s.t+'</span><span style="font-size:11px;color:var(--ink-3);min-width:110px;text-align:right">'+esc(x.msg)+'</span></div>';
     }).join("");
     $("#bulkSave").disabled=(ok===0);
   }
@@ -860,14 +828,15 @@ function bindEntry(){
     $("#todayList").innerHTML=todayAdded.map(function(a){ return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">'+esc(a.h)+'</span><span class="tag">'+esc(a.t)+'</span>'+(a.rsv?'<span class="tag ok">예약</span>':"")+'<span style="margin-left:auto;font-size:11.5px;color:var(--ink-3)">'+esc(a.o)+'</span>'+(a.st==="warn"?'<span class="tag wn">중복 확인</span>':"")+'</div>';}).join("");
   }
   function _bulkSave(){
-    var oi=+$("#oIn").value, proc=$("#tIn").value;
+    var oi=+$("#oIn").value;
     var save=_bulk.filter(function(x){return x.st!=="stop";});
     if(!save.length) return;
     var rsvSet={}; var _cbs=document.querySelectorAll('#bulkRes .bulk-rsv'); for(var _ci=0;_ci<_cbs.length;_ci++){ if(_cbs[_ci].checked) rsvSet[_cbs[_ci].getAttribute('data-h')]=1; }
-    var rows=save.map(function(x){ return {handle:x.h,owner:OW[oi],date:TODAY,reserve:(rsvSet[x.h]?1:0),procedure:proc,memo:"",source:"app"}; });
+    var procMap={}; var _ps=document.querySelectorAll('#bulkRes .bulk-proc'); for(var _pi=0;_pi<_ps.length;_pi++){ procMap[_ps[_pi].getAttribute('data-h')]=(_ps[_pi].value||"").trim(); }
+    var rows=save.map(function(x){ return {handle:x.h,owner:OW[oi],date:TODAY,reserve:(rsvSet[x.h]?1:0),procedure:(procMap[x.h]||""),memo:"",source:"app"}; });
     var b=$("#bulkSave"); b.disabled=true; b.textContent="등록 중…";
     function done(){
-      save.forEach(function(x){ var rv=rsvSet[x.h]?1:0; var hi=HS.indexOf(x.h); if(hi<0){hi=HS.length;HS.push(x.h);} var rec=[hi,TODAY,oi,rv,""]; CT.push(rec); if(IDX[hi])IDX[hi].push(rec); else IDX[hi]=[rec]; todayAdded.unshift({h:x.h,o:OW[oi],t:proc,st:x.st,rsv:rv}); });
+      save.forEach(function(x){ var rv=rsvSet[x.h]?1:0; var hi=HS.indexOf(x.h); if(hi<0){hi=HS.length;HS.push(x.h);} var rec=[hi,TODAY,oi,rv,""]; CT.push(rec); if(IDX[hi])IDX[hi].push(rec); else IDX[hi]=[rec]; todayAdded.unshift({h:x.h,o:OW[oi],t:(procMap[x.h]||""),st:x.st,rsv:rv}); });
       _renderToday(); if(typeof renderDash==="function")renderDash();
       $("#bulkIn").value=""; $("#bulkRes").innerHTML=""; $("#bulkSum").textContent=""; _bulk=[]; b.textContent="검사된 것 모두 등록";
       alert(save.length+"건 등록 완료!");
@@ -1037,8 +1006,8 @@ window.go2=function(i){ go("db"); $("#dbQ").value=SUM[i].h; renderDb(); detail(i
 
 /* ══ settings ══ */
 function bindSet(){
-  $("#cdOwn").addEventListener("input",function(){CD.own=+this.value||0;rules();check($("#hIn").value);});
-  $("#cdSelf").addEventListener("input",function(){CD.self=+this.value||0;rules();check($("#hIn").value);});
+  $("#cdOwn").addEventListener("input",function(){CD.own=+this.value||0;rules();});
+  $("#cdSelf").addEventListener("input",function(){CD.self=+this.value||0;rules();});
   function _setPerson(idx){ ME=+idx; var os=$("#oIn"); if(os)os.value=ME; var vs=$("#viewSel"); if(vs)vs.value=ME; var ms=$("#meSel"); if(ms)ms.value=ME; var of=$("#upFormOwner"); if(of)of.textContent="담당: "+(OW[ME]||""); check($("#hIn").value); renderDash(); if(typeof renderMyUploads==="function")renderMyUploads(); if(typeof renderQuickGrid==="function")renderQuickGrid(); } $("#meSel").addEventListener("change",function(){_setPerson(this.value);}); var _vselH=$("#viewSel"); if(_vselH)_vselH.addEventListener("change",function(){_setPerson(this.value);});
   $("#abN").textContent=nf(CT.length); $("#abH").textContent=nf(HS.length); $("#abU").textContent=nf(UP.length);
 }
