@@ -614,7 +614,7 @@ function renderQuickGrid(){
   var me=OW[ME]||"";
   var mine=UP.filter(function(u){return u.source==="app" && u.owner===me;});
   function _has(u){ return (u.name||u.item||u.op||u.up||u.link||u.phone)?1:0; }
-  mine.sort(function(a,b){ var ca=_has(a),cb=_has(b); if(ca!==cb) return cb-ca; var da=(a.up||a.op||""),db=(b.up||b.op||""); return da<db?1:(da>db?-1:0); });
+  mine.sort(function(a,b){ var ca=_has(a),cb=_has(b); if(ca!==cb) return cb-ca; var da=(a.op||a.up||""),db=(b.op||b.up||""); return da<db?1:(da>db?-1:0); });
   var S=["예약확정","시술완료","1차점검완료","업로드완료","성과집계"];
   function iv(v){ return esc(v==null?"":v); }
   function inp(u,f,ty){ return '<input data-id="'+u.id+'" data-f="'+f+'" type="'+(ty||"text")+'" value="'+iv(u[f])+'">'; }
