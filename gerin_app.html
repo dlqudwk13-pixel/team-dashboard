@@ -905,9 +905,14 @@ function renderUpload(){
 function renderDb(){
   var q=$("#dbQ").value.trim().toLowerCase().replace(/^@/,""), f=$("#dbF").value, s=$("#dbS").value;
   var owSel=$("#dbOwn")?$("#dbOwn").value:"";
-  var L=SUM.filter(function(x){
+  var base;
+  if(owSel!==""){
+    var _oi=+owSel, _m={};
+    CT.forEach(function(c){ if(c[2]!==_oi) return; var hi=c[0]; if(!_m[hi])_m[hi]={h:HS[hi],i:hi,n:0,bk:0,last:""}; _m[hi].n++; if(c[3])_m[hi].bk++; if(c[1]>_m[hi].last)_m[hi].last=c[1]; });
+    base=Object.keys(_m).map(function(k){ var x=_m[k]; var su=SUM[x.i]; x.ow=su?su.ow:1; x.black=!!blMap[x.h]; return x; });
+  } else { base=SUM; }
+  var L=base.filter(function(x){
     if(q&&x.h.indexOf(q)<0) return false;
-    if(owSel!==""){ var _oi=+owSel; if(!(IDX[x.i]||[]).some(function(c){return c[2]===_oi;})) return false; }
     if(f==="dupown") return x.ow>1;
     if(f==="black") return x.black;
     if(f==="book") return x.bk>0;
