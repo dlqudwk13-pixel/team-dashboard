@@ -848,6 +848,10 @@ function bindEntry(){
     var oi=+$("#oIn").value;
     var save=_bulk.filter(function(x){return x.st==="ok"||x.st==="warn";});
     if(!save.length) return;
+    // 안전장치: 이 담당이 오늘 이미 등록한 계정은 제외 (버튼 중복 클릭·재등록 방지)
+    var _todaySet={}; CT.forEach(function(c){ if(c[2]===oi && c[1]===TODAY) _todaySet[HS[c[0]]]=1; });
+    save=save.filter(function(x){ if(_todaySet[x.h]) return false; _todaySet[x.h]=1; return true; });
+    if(!save.length){ alert("모두 오늘 이미 등록된 계정이에요."); var _bb=$("#bulkSave"); if(_bb){_bb.disabled=false;} return; }
     var rsvSet={}; var _cbs=document.querySelectorAll('#bulkRes .bulk-rsv'); for(var _ci=0;_ci<_cbs.length;_ci++){ if(_cbs[_ci].checked) rsvSet[_cbs[_ci].getAttribute('data-h')]=1; }
     var procMap={}; var _ps=document.querySelectorAll('#bulkRes .bulk-proc'); for(var _pi=0;_pi<_ps.length;_pi++){ procMap[_ps[_pi].getAttribute('data-h')]=(_ps[_pi].value||"").trim(); }
     var rows=save.map(function(x){ return {handle:x.h,owner:OW[oi],date:TODAY,reserve:(rsvSet[x.h]?1:0),procedure:(procMap[x.h]||""),memo:"",source:"app"}; });
