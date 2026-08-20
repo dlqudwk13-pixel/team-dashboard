@@ -462,6 +462,7 @@ function _agg(type){
   function ens(k){ if(!map[k])map[k]=_pdiv(); return map[k]; }
   CT.forEach(function(x){ var oi=x[2]; if(oi<0||oi>=OW.length)return; var k=_pkey(type,x[1]); if(!k)return; var m=ens(k); m[oi].c++; if(x[3])m[oi].b++; });
   UP.forEach(function(u){ if(!u.up)return; var oi=OW.indexOf(u.owner); if(oi<0)return; var k=_pkey(type,u.up); if(!k)return; var m=ens(k); m[oi].u++; });
+  if(type==="day") ens(_pkey("day",TODAY)); // 오늘은 비어 있어도 항상 표시
   return map;
 }
 function _ppTbl(arr){
@@ -487,9 +488,12 @@ function _renderPer(type,ids){
   var tb=$("#"+ids.tbl);
   if(!keys.length){ tb.innerHTML=_ppTbl(null); $("#"+ids.note).textContent=""; return; }
   if(keys.indexOf(_perCur[type])<0){
-    var _def=null;
-    for(var _ki=keys.length-1;_ki>=0;_ki--){ var _a=map[keys[_ki]],_t=0; for(var _o=0;_o<_a.length;_o++)_t+=_a[_o].c; if(_t>0){_def=keys[_ki];break;} }
-    _perCur[type]=_def||keys[keys.length-1];
+    if(type==="day" && keys.indexOf(TODAY)>=0){ _perCur[type]=TODAY; }
+    else {
+      var _def=null;
+      for(var _ki=keys.length-1;_ki>=0;_ki--){ var _a=map[keys[_ki]],_t=0; for(var _o=0;_o<_a.length;_o++)_t+=_a[_o].c; if(_t>0){_def=keys[_ki];break;} }
+      _perCur[type]=_def||keys[keys.length-1];
+    }
   }
   var i=keys.indexOf(_perCur[type]);
   tb.innerHTML=_ppTbl(map[_perCur[type]]); $("#"+ids.note).textContent=_plabel(type,_perCur[type]);
