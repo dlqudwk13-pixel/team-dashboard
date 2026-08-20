@@ -862,7 +862,7 @@ function bindEntry(){
       $("#bulkIn").value=""; $("#bulkRes").innerHTML=""; $("#bulkSum").textContent=""; _bulk=[]; b.textContent="검사된 것 모두 등록";
       alert(save.length+"건 등록 완료!");
     }
-    if(window._sb){ window._sb.from("contacts").insert(rows).then(function(r){ if(r.error){ alert("저장 실패: "+r.error.message); b.disabled=false; b.textContent="검사된 것 모두 등록"; return; } done(); }); }
+    if(window._sb){ window._sb.from("contacts").upsert(rows,{onConflict:"owner,handle,date",ignoreDuplicates:true}).then(function(r){ if(r.error){ alert("저장 실패: "+r.error.message); b.disabled=false; b.textContent="검사된 것 모두 등록"; return; } done(); }); }
     else { done(); }
   }
   var _bc=$("#bulkChk"), _bs=$("#bulkSave");
