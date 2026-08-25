@@ -404,7 +404,8 @@ window.__APP__=function(){
 "use strict";
 var D=window.__DATA__, OW=D.owners, HS=D.handles, CT=D.contacts, BL=D.blacklist, UP=D.uploads;
 var CD={own:90,self:30}, ME=(function(){var _m=OW.indexOf(window.__ME__||"지성경");return _m<0?0:_m;})();
-var TODAY=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Seoul"});
+function _nowKST(){return new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Seoul"});}
+var TODAY=_nowKST();
 var blMap={}; BL.forEach(function(b){blMap[b.h]=b;});
 var $=function(s){return document.querySelector(s);};
 var esc=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});};
@@ -705,6 +706,7 @@ function _quickChange(e){
   renderUpload(); renderUploadStats(); renderDash();
 }
 function renderDash(){
+  TODAY=_nowKST();
   var last7=dayKeys.slice(-7), avg7=Math.round(last7.reduce(function(a,k){return a+byDay[k];},0)/last7.length);
   var jul=byMon["2026-07"]||{c:0,b:0}, jun=byMon["2026-06"]||{c:0,b:0};
   var totB=CT.filter(function(c){return c[3];}).length;
@@ -823,6 +825,7 @@ function bindEntry(){
   }
   var _bulk=[];
   function _bulkCheck(){
+    TODAY=_nowKST(); // 자정 넘겨 열어둔 탭 대비: 실제 오늘로 갱신
     function _nh(s){ s=(s||"").trim().toLowerCase(); var m=s.match(/instagram\.com\/([^\/?#]+)/); if(m)s=m[1]; return s.replace(/^@/,"").replace(/\/+$/,""); }
     var lines=($("#bulkIn").value||"").split(/[\s,]+/).map(_nh).filter(Boolean);
     var seen={},list=[]; lines.forEach(function(h){ if(!seen[h]){seen[h]=1;list.push(h);} });
@@ -845,6 +848,7 @@ function bindEntry(){
     $("#todayList").innerHTML=todayAdded.map(function(a){ return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">'+esc(a.h)+'</span><span class="tag">'+esc(a.t)+'</span>'+(a.rsv?'<span class="tag ok">예약</span>':"")+'<span style="margin-left:auto;font-size:11.5px;color:var(--ink-3)">'+esc(a.o)+'</span>'+(a.st==="warn"?'<span class="tag wn">중복 확인</span>':"")+'</div>';}).join("");
   }
   function _bulkSave(){
+    TODAY=_nowKST(); // 등록 시점의 실제 날짜로 저장 (자정 넘긴 탭 방지)
     var oi=+$("#oIn").value;
     var save=_bulk.filter(function(x){return x.st==="ok"||x.st==="warn";});
     if(!save.length) return;
