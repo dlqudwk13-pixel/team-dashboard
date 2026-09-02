@@ -380,6 +380,16 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
             <select id="meSel" style="max-width:200px"></select>
           </div>
         </div>
+        <div class="card pad" style="max-width:560px;margin-top:12px">
+          <div class="hd"><h2>비밀번호 변경</h2></div>
+          <div style="font-size:12.5px;color:var(--ink-3);margin:6px 0 12px">로그인한 본인 계정의 비밀번호를 바꿔요. 6자 이상.</div>
+          <div style="display:flex;flex-direction:column;gap:9px;max-width:300px">
+            <input id="pwNew" type="password" placeholder="새 비밀번호 (6자 이상)" autocomplete="new-password" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px">
+            <input id="pwNew2" type="password" placeholder="새 비밀번호 확인" autocomplete="new-password" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px">
+            <button class="btn pri" id="pwBtn" style="padding:10px">변경</button>
+          </div>
+          <div id="pwMsg" style="font-size:12.5px;margin-top:9px"></div>
+        </div>
         <div class="card pad" id="apprCard" style="max-width:560px;margin-top:12px;display:none">
           <div class="hd"><h2>가입 승인</h2><span class="note">관리자 전용</span></div>
           <div style="font-size:12.5px;color:var(--ink-3);margin:6px 0 12px;line-height:1.6">새로 가입한 팀원을 승인하면 데이터에 접근할 수 있어요. 보류하면 다시 대기 상태가 돼요.</div>
@@ -1016,6 +1026,21 @@ function _apprSet(name,v){
   });
 }
 
+/* ══ 비밀번호 변경 ══ */
+function _pwChange(){
+  var p1=$("#pwNew"), p2=$("#pwNew2"), msg=$("#pwMsg"), btn=$("#pwBtn");
+  var v1=p1?p1.value:"", v2=p2?p2.value:"";
+  if(v1.length<6){ if(msg)msg.innerHTML='<span style="color:#c0392b">6자 이상 입력하세요.</span>'; return; }
+  if(v1!==v2){ if(msg)msg.innerHTML='<span style="color:#c0392b">두 비밀번호가 달라요.</span>'; return; }
+  if(btn)btn.disabled=true;
+  window._sb.auth.updateUser({password:v1}).then(function(r){
+    if(btn)btn.disabled=false;
+    if(r.error){ if(msg)msg.innerHTML='<span style="color:#c0392b">변경 실패: '+esc(r.error.message)+'</span>'; return; }
+    if(p1)p1.value=""; if(p2)p2.value="";
+    if(msg)msg.innerHTML='<span style="color:#047857">비밀번호가 바뀌었어요.</span>';
+  });
+}
+
 /* ══ risk ══ */
 function renderRisk(){
   $("#riskKpi").innerHTML=kpi("담당자 간 중복",nf(dupOwn),"전체 "+nf(HS.length)+"명 중","alert")+
@@ -1047,6 +1072,7 @@ renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','m
 var _qsk=document.getElementById('qSortKey'); if(_qsk)_qsk.addEventListener('change',renderQuickGrid);
 var _qsd=document.getElementById('qSortDir'); if(_qsd)_qsd.addEventListener('change',renderQuickGrid); var _qg=document.getElementById('quickGrid'); if(_qg)_qg.addEventListener('change',_quickChange); if(_qg)_qg.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-del]'):null; if(b)_quickDelete(b.getAttribute('data-del')); }); renderDb(); renderRisk(); renderBlList(); renderApprovals();
 var _apl=document.getElementById('apprList'); if(_apl)_apl.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-name]'):null; if(b)_apprSet(b.getAttribute('data-name'), b.getAttribute('data-v')==='1'); });
+var _pwb=document.getElementById('pwBtn'); if(_pwb)_pwb.addEventListener('click',_pwChange);
 var _bla=document.getElementById('blAddBtn'); if(_bla)_bla.addEventListener('click',_blAdd);
 var _blt=document.getElementById('blTbl'); if(_blt)_blt.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-h]'):null; if(b)_blDel(b.getAttribute('data-h')); });
 var _blh=document.getElementById('blH'); if(_blh)_blh.addEventListener('keydown',function(e){ if(e.key==='Enter')_blAdd(); });
