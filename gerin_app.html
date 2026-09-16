@@ -638,8 +638,9 @@ function renderQuickGrid(){
   function _has(u){ return (u.name||u.item||u.op||u.up||u.link||u.phone)?1:0; }
   var _skE=$("#qSortKey"), _sdE=$("#qSortDir"); var SK=_skE?_skE.value:"op", SD=_sdE?_sdE.value:"desc";
   mine.sort(function(a,b){ var ca=_has(a),cb=_has(b); if(ca!==cb) return ca-cb;
-    var ka=(SK==="up"?(a.up||a.op||""):(a.op||a.up||"")), kb=(SK==="up"?(b.up||b.op||""):(b.op||b.up||""));
-    if(ka===kb) return 0; var r=ka<kb?-1:1; return SD==="asc"?r:-r; });
+    var fa=((SK==="up"?a.up:a.op)||""), fb=((SK==="up"?b.up:b.op)||"");
+    var ea=fa?1:0, eb=fb?1:0; if(ea!==eb) return ea-eb;   // 기준 날짜가 빈 행을 맨 위로
+    if(!fa) return 0; var r=fa<fb?-1:1; return SD==="asc"?r:-r; });
   var S=["예약확정","시술완료","1차점검완료","업로드완료","성과집계"];
   function iv(v){ return esc(v==null?"":v); }
   function inp(u,f,ty){ return '<input data-id="'+u.id+'" data-f="'+f+'" type="'+(ty||"text")+'" value="'+iv(u[f])+'">'; }
