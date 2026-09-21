@@ -247,6 +247,7 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
               <select id="qSortKey" style="padding:4px 8px;border:1px solid var(--line);border-radius:7px;font-size:12px;font-family:inherit"><option value="op">시술일</option><option value="up">업로드일</option></select>
               <select id="qSortDir" style="padding:4px 8px;border:1px solid var(--line);border-radius:7px;font-size:12px;font-family:inherit"><option value="desc">최신순</option><option value="asc">오래된순</option></select>
               <button class="btn pri" id="quickAdd" style="padding:5px 14px;font-size:13px">+ 행 추가</button>
+              <button class="btn sm" id="dlUpBtn" style="display:none;padding:5px 12px;font-size:12.5px">엑셀 다운로드</button>
             </span>
           </div>
           <div style="font-size:11.5px;color:var(--ink-3);margin:4px 0 10px">칸을 채우면 자동 저장돼요. 시트처럼 쭉 입력하세요. 시술일을 넣으면 1차점검이 일주일 뒤로, 업로드일을 넣으면 2주 날짜가 자동으로 채워지고, 오른쪽 지표(2주 조회수·좋아요·댓글 등)를 넣으면 총점·등급이 자동으로 나와요.</div>
@@ -629,6 +630,21 @@ function renderMyUploads(){
     '</div>';
   }).join('');
 }
+function _csvCell(v){ v=(v==null?"":String(v)); return /[",\n\r]/.test(v)?('"'+v.replace(/"/g,'""')+'"'):v; }
+function _exportUploadsCSV(){
+  var head=["담당","성형/쁘띠","항목","이름","연락처","시술일","1차점검","업로드일","2주날짜","링크","단계","2주조회수","좋아요","총댓글","중요댓글","저장","공유","리포스트","총점","등급","출처"];
+  var S=["예약확정","시술완료","1차점검완료","업로드완료","성과집계"];
+  var arr=UP.slice().sort(function(a,b){ var da=(a.op||a.up||""),db=(b.op||b.up||""); return da<db?1:(da>db?-1:0); });
+  var lines=[head.map(_csvCell).join(",")];
+  arr.forEach(function(u){
+    var st=(u.stage!=null&&u.stage!=="")?+u.stage:stage(u);
+    lines.push([u.owner,u.cat,u.item,u.name,u.phone,u.op,u.chk1,u.up,plus14(u.up),u.link,S[st]||"",u.views,u.likes,u.comments,u.imp_comments,u.saves,u.shares,u.reposts,u.score,u.grade,u.source].map(_csvCell).join(","));
+  });
+  var csv="﻿"+lines.join("\r\n");
+  var blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  var url=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=url; a.download="업로드목록_"+_nowKST()+".csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function(){URL.revokeObjectURL(url);},1000);
+}
 function plusDays(d,n){ if(!d) return ""; var m=String(d).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/); if(!m) return ""; var dt=new Date(+m[1],+m[2]-1,+m[3]); dt.setDate(dt.getDate()+n); var y=dt.getFullYear(),mo=("0"+(dt.getMonth()+1)).slice(-2),da=("0"+dt.getDate()).slice(-2); return y+"-"+mo+"-"+da; }
 function plus14(d){ return plusDays(d,14); }
 function renderQuickGrid(){
@@ -749,6 +765,7 @@ window.copyReport=function(b){navigator.clipboard&&navigator.clipboard.writeText
 
 /* ══ entry ══ */
 var TX=["얼굴 갸름주사","어깨필러","귀+인중","비절개 눈밑지","젤리코","힐로웨이브","온다리프팅","땅콩패키지","스컬트라","기타"];
+var DL_ALLOWED=["이병주"];  // 엑셀 다운로드 허용 이름 (여기에 이름 추가)
 var picked=null, todayAdded=[];
 function fillSel(){
   $("#oIn").innerHTML=OW.map(function(o,i){return '<option value="'+i+'"'+(i===ME?" selected":"")+'>'+esc(o)+'</option>';}).join("");
@@ -1070,6 +1087,7 @@ function bindSet(){
 
 fillSel(); rules(); tryList(); bindEntry(); bindSet();
 renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); var _mul=document.getElementById('myUpList'); if(_mul)_mul.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-id]'):null; if(b)_upEdit(b.getAttribute('data-id')); }); renderQuickGrid(); var _qa=document.getElementById('quickAdd'); if(_qa)_qa.addEventListener('click',_quickAddRow);
+var _dlb=document.getElementById('dlUpBtn'); if(_dlb){ if(DL_ALLOWED.indexOf(window.__ME__)>=0){ _dlb.style.display=""; _dlb.addEventListener('click',_exportUploadsCSV); } else { _dlb.style.display="none"; } }
 var _qsk=document.getElementById('qSortKey'); if(_qsk)_qsk.addEventListener('change',renderQuickGrid);
 var _qsd=document.getElementById('qSortDir'); if(_qsd)_qsd.addEventListener('change',renderQuickGrid); var _qg=document.getElementById('quickGrid'); if(_qg)_qg.addEventListener('change',_quickChange); if(_qg)_qg.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-del]'):null; if(b)_quickDelete(b.getAttribute('data-del')); }); renderDb(); renderRisk(); renderBlList(); renderApprovals();
 var _apl=document.getElementById('apprList'); if(_apl)_apl.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-name]'):null; if(b)_apprSet(b.getAttribute('data-name'), b.getAttribute('data-v')==='1'); });
