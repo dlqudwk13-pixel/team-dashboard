@@ -247,6 +247,7 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
               <select id="qSortKey" style="padding:4px 8px;border:1px solid var(--line);border-radius:7px;font-size:12px;font-family:inherit"><option value="op">시술일</option><option value="up">업로드일</option></select>
               <select id="qSortDir" style="padding:4px 8px;border:1px solid var(--line);border-radius:7px;font-size:12px;font-family:inherit"><option value="desc">최신순</option><option value="asc">오래된순</option></select>
               <button class="btn pri" id="quickAdd" style="padding:5px 14px;font-size:13px">+ 행 추가</button>
+              <span id="dlRange" style="display:none;align-items:center;gap:4px;font-size:12px;color:var(--ink-3)"><input id="dlFrom" type="date" style="padding:4px 6px;border:1px solid var(--line);border-radius:7px;font-size:12px;font-family:inherit">~<input id="dlTo" type="date" style="padding:4px 6px;border:1px solid var(--line);border-radius:7px;font-size:12px;font-family:inherit"></span>
               <button class="btn sm" id="dlUpBtn" style="display:none;padding:5px 12px;font-size:12.5px">엑셀 다운로드</button>
             </span>
           </div>
@@ -634,7 +635,10 @@ function _csvCell(v){ v=(v==null?"":String(v)); return /[",\n\r]/.test(v)?('"'+v
 function _exportUploadsCSV(){
   var head=["담당","성형/쁘띠","항목","이름","연락처","시술일","1차점검","업로드일","2주날짜","링크","단계","2주조회수","좋아요","총댓글","중요댓글","저장","공유","리포스트","총점","등급","출처"];
   var S=["예약확정","시술완료","1차점검완료","업로드완료","성과집계"];
+  var _fE=document.getElementById('dlFrom'), _tE=document.getElementById('dlTo');
+  var _from=_fE?_fE.value:"", _to=_tE?_tE.value:"";
   var arr=UP.slice().sort(function(a,b){ var da=(a.op||a.up||""),db=(b.op||b.up||""); return da<db?1:(da>db?-1:0); });
+  if(_from||_to){ arr=arr.filter(function(u){ var d=(u.up||"").slice(0,10); if(!d) return false; if(_from&&d<_from) return false; if(_to&&d>_to) return false; return true; }); }
   var lines=[head.map(_csvCell).join(",")];
   arr.forEach(function(u){
     var st=(u.stage!=null&&u.stage!=="")?+u.stage:stage(u);
@@ -643,7 +647,8 @@ function _exportUploadsCSV(){
   var csv="﻿"+lines.join("\r\n");
   var blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
   var url=URL.createObjectURL(blob), a=document.createElement("a");
-  a.href=url; a.download="업로드목록_"+_nowKST()+".csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  var _suffix=(_from||_to)?("_"+(_from||"처음")+"~"+(_to||"끝")):("_"+_nowKST());
+  a.href=url; a.download="업로드목록"+_suffix+".csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }
 function plusDays(d,n){ if(!d) return ""; var m=String(d).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/); if(!m) return ""; var dt=new Date(+m[1],+m[2]-1,+m[3]); dt.setDate(dt.getDate()+n); var y=dt.getFullYear(),mo=("0"+(dt.getMonth()+1)).slice(-2),da=("0"+dt.getDate()).slice(-2); return y+"-"+mo+"-"+da; }
 function plus14(d){ return plusDays(d,14); }
@@ -1087,7 +1092,7 @@ function bindSet(){
 
 fillSel(); rules(); tryList(); bindEntry(); bindSet();
 renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); var _mul=document.getElementById('myUpList'); if(_mul)_mul.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-id]'):null; if(b)_upEdit(b.getAttribute('data-id')); }); renderQuickGrid(); var _qa=document.getElementById('quickAdd'); if(_qa)_qa.addEventListener('click',_quickAddRow);
-var _dlb=document.getElementById('dlUpBtn'); if(_dlb){ if(DL_ALLOWED.indexOf(window.__ME__)>=0){ _dlb.style.display=""; _dlb.addEventListener('click',_exportUploadsCSV); } else { _dlb.style.display="none"; } }
+var _dlb=document.getElementById('dlUpBtn'); var _dlr=document.getElementById('dlRange'); if(_dlb){ if(DL_ALLOWED.indexOf(window.__ME__)>=0){ _dlb.style.display=""; if(_dlr)_dlr.style.display="inline-flex"; _dlb.addEventListener('click',_exportUploadsCSV); } else { _dlb.style.display="none"; if(_dlr)_dlr.style.display="none"; } }
 var _qsk=document.getElementById('qSortKey'); if(_qsk)_qsk.addEventListener('change',renderQuickGrid);
 var _qsd=document.getElementById('qSortDir'); if(_qsd)_qsd.addEventListener('change',renderQuickGrid); var _qg=document.getElementById('quickGrid'); if(_qg)_qg.addEventListener('change',_quickChange); if(_qg)_qg.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-del]'):null; if(b)_quickDelete(b.getAttribute('data-del')); }); renderDb(); renderRisk(); renderBlList(); renderApprovals();
 var _apl=document.getElementById('apprList'); if(_apl)_apl.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-name]'):null; if(b)_apprSet(b.getAttribute('data-name'), b.getAttribute('data-v')==='1'); });
