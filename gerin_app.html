@@ -171,7 +171,7 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
       <span class="sub" id="vsub"></span>
       <div class="spacer"></div>
       <span style="font-size:11.5px;color:var(--ink-3);margin-right:6px">보기</span><select id="viewSel" style="padding:5px 8px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;margin-right:12px;font-family:inherit"></select>
-      <div class="who"><span class="av" id="meAv">지</span><span id="meNm">지성경</span></div>
+      <div class="who"><span class="av" id="meAv"></span><span id="meNm"></span></div>
     </header>
     <div class="body">
 
@@ -410,12 +410,12 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
   </div>
 </div>
 
-<script>window.__DATA__={"owners":["김수아","김지수","윤설아","윤예지","지성경"],"handles":[],"contacts":[],"blacklist":[],"uploads":[]};</script>
+<script>window.__DATA__={"owners":["김수아","김지수","윤설아","윤예지"],"handles":[],"contacts":[],"blacklist":[],"uploads":[]};</script>
 <script>
 window.__APP__=function(){
 "use strict";
 var D=window.__DATA__, OW=D.owners, HS=D.handles, CT=D.contacts, BL=D.blacklist, UP=D.uploads;
-var CD={own:90,self:30}, ME=(function(){var _m=OW.indexOf(window.__ME__||"지성경");return _m<0?0:_m;})();
+var CD={own:90,self:30}, ME=(function(){var _m=OW.indexOf(window.__ME__||"");return _m<0?0:_m;})();
 function _nowKST(){return new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Seoul"});}
 var TODAY=_nowKST();
 var blMap={}; BL.forEach(function(b){blMap[b.h]=b;});
