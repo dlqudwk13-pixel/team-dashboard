@@ -214,14 +214,28 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
       <!-- ── 레퍼런스 ── -->
       <section id="v-ref" class="hide">
         <div class="card pad" style="margin-bottom:14px">
-          <div class="hd"><h2>레퍼런스 영상</h2><span class="note" id="refAllNote">자동</span></div>
-          <div style="font-size:11.5px;color:var(--ink-3);margin:4px 0 10px">조회수 10만 이상 또는 댓글 1000개 이상인 우리 잘 나온 영상이에요. 인플에게 보낼 때 참고하세요.</div>
+          <div class="hd"><h2>레퍼런스 등록</h2><span class="note">수동</span></div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin:4px 0 10px">인플에게 보낼 레퍼런스 영상을 직접 등록해요. 업로드 목록에 없는 영상도 추가할 수 있어요.</div>
+          <div class="grid" style="grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+            <div><label class="fl">시술명</label><input id="rfI" type="text" placeholder="예: 갸름주사" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">인플 이름</label><input id="rfN" type="text" placeholder="인플루언서 이름" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">계정 (채널)</label><input id="rfA" type="text" placeholder="https://instagram.com/..." style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+            <div><label class="fl">연락처 (선택)</label><input id="rfP" type="text" placeholder="010-..." style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+          </div>
+          <div style="margin-top:8px"><label class="fl">릴스 링크</label><input id="rfL" type="text" placeholder="https://instagram.com/reel/..." style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+          <div style="margin-top:8px"><label class="fl">비고 (선택)</label><input id="rfNote" type="text" placeholder="예: 시술 후에 보내기" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit"></div>
+          <button class="btn pri" id="rfAdd" style="margin-top:11px">레퍼런스 추가</button>
+        </div>
+
+        <div class="card pad" style="margin-bottom:14px">
+          <div class="hd"><h2>레퍼런스 영상</h2><span class="note" id="refAllNote">0개</span></div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin:4px 0 10px">등록된 레퍼런스예요. 인플에게 보낼 때 링크를 복사해서 쓰세요.</div>
           <div id="refAll"></div>
         </div>
 
         <div class="card pad">
-          <div class="hd"><h2>담당별 성과 우수 인플</h2><span class="note">자동</span></div>
-          <div style="font-size:11.5px;color:var(--ink-3);margin:4px 0 10px">담당자별로 기준(조회수 10만↑ 또는 댓글 1000개↑)을 넘은 인플이에요.</div>
+          <div class="hd"><h2>담당별 성과 우수 인플</h2><span class="note">자동 · 후보</span></div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin:4px 0 10px">조회수 10만↑ 또는 댓글 1000개↑ 인 영상이에요. '레퍼런스로 추가'를 누르면 위 목록에 올라가요.</div>
           <div id="refByOwner"></div>
         </div>
       </section>
@@ -426,11 +440,11 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
   </div>
 </div>
 
-<script>window.__DATA__={"owners":["김수아","김지수","윤설아","윤예지"],"handles":[],"contacts":[],"blacklist":[],"uploads":[]};</script>
+<script>window.__DATA__={"owners":["김수아","김지수","윤설아","윤예지"],"handles":[],"contacts":[],"blacklist":[],"uploads":[],"refs":[]};</script>
 <script>
 window.__APP__=function(){
 "use strict";
-var D=window.__DATA__, OW=D.owners, HS=D.handles, CT=D.contacts, BL=D.blacklist, UP=D.uploads;
+var D=window.__DATA__, OW=D.owners, HS=D.handles, CT=D.contacts, BL=D.blacklist, UP=D.uploads, REF=D.refs||[];
 var CD={own:90,self:30}, ME=(function(){var _m=OW.indexOf(window.__ME__||"");return _m<0?0:_m;})();
 function _nowKST(){return new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Seoul"});}
 var TODAY=_nowKST();
@@ -785,45 +799,119 @@ function renderDash(){
 }
 window.copyReport=function(b){navigator.clipboard&&navigator.clipboard.writeText($("#report").textContent);b.textContent="복사됨";setTimeout(function(){b.textContent="복사";},1400);};
 
-/* ══ 레퍼런스 영상 / 담당별 우수 인플 (조회수 10만↑ or 댓글 1000↑) ══ */
+/* ══ 레퍼런스 (수동 등록) / 담당별 우수 인플 후보 (조회수 10만↑ or 댓글 1000↑) ══ */
 function _num(v){ v=parseInt(String(v==null?"":v).replace(/[^0-9]/g,""),10); return isNaN(v)?0:v; }
 function _isRef(u){ return _num(u.views)>=100000 || _num(u.comments)>=1000; }
-function _refRow(u){
+function _rkey(l){ return String(l||"").trim().toLowerCase().replace(/\/+$/,""); }
+function _refHas(link){ var k=_rkey(link); if(!k) return false; return REF.some(function(r){ return _rkey(r.link)===k; }); }
+function _isUrl(s){ return /^https?:\/\//i.test(String(s||"").trim()); }
+function _linkCell(link){
+  if(!link) return '<span style="color:var(--ink-3)">(링크 없음)</span>';
+  var base=_isUrl(link)
+    ? '<a href="'+esc(link)+'" target="_blank" rel="noopener" style="color:var(--signal);word-break:break-all">'+esc(link)+'</a>'
+    : '<span style="word-break:break-all">'+esc(link)+'</span>';
+  return base+' <button class="btn sm" style="padding:1px 8px;font-size:11px" onclick="copyText(this,\''+esc(link).replace(/'/g,"\\'")+'\')">복사</button>';
+}
+function _acctCell(a){
+  if(!a) return '<span style="color:var(--ink-3)">—</span>';
+  return _isUrl(a)?'<a href="'+esc(a)+'" target="_blank" rel="noopener" style="color:var(--signal);word-break:break-all">'+esc(a)+'</a>':'<span style="word-break:break-all">'+esc(a)+'</span>';
+}
+/* 등록된 레퍼런스 목록 (시술명별 그룹) */
+function _regRow(r){
+  return '<tr>'
+    +'<td style="padding:7px 8px;font-weight:600">'+esc(r.name||"—")+'</td>'
+    +'<td style="padding:7px 8px;font-size:12px">'+_acctCell(r.account||"")+'</td>'
+    +'<td style="padding:7px 8px;font-family:var(--mono);white-space:nowrap">'+esc(r.phone||"—")+'</td>'
+    +'<td style="padding:7px 8px;font-size:12px">'+_linkCell(r.link||"")+'</td>'
+    +'<td style="padding:7px 8px;font-size:12px;color:var(--ink-2)">'+esc(r.note||"")+'</td>'
+    +'<td style="padding:7px 8px"><button class="btn sm" style="padding:1px 9px;font-size:11px;color:#c0392b" onclick="delRef(\''+esc(String(r.id))+'\')">삭제</button></td>'
+    +'</tr>';
+}
+function _regTable(list){
+  return '<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
+    +'<thead><tr style="text-align:left;color:var(--ink-3);font-size:11.5px;border-bottom:1px solid var(--line)">'
+    +'<th style="padding:6px 8px;font-weight:600">인플 이름</th><th style="padding:6px 8px;font-weight:600">계정</th><th style="padding:6px 8px;font-weight:600">연락처</th><th style="padding:6px 8px;font-weight:600">릴스 링크</th><th style="padding:6px 8px;font-weight:600">비고</th><th style="padding:6px 8px;font-weight:600"></th></tr></thead>'
+    +'<tbody>'+list.map(_regRow).join("")+'</tbody></table></div>';
+}
+function _regGrouped(){
+  if(!REF.length) return '<div style="font-size:12.5px;color:var(--ink-3);padding:8px 2px">아직 등록된 레퍼런스가 없어요. 위에서 직접 등록하거나, 아래 후보에서 추가하세요.</div>';
+  var groups={}, order=[];
+  REF.forEach(function(r){ var it=(r.item||"기타"); if(!groups[it]){groups[it]=[];order.push(it);} groups[it].push(r); });
+  return order.map(function(it){
+    return '<div style="margin-bottom:16px"><div style="font-weight:700;font-size:13.5px;margin-bottom:5px">'+esc(it)+' <span style="color:var(--ink-3);font-weight:400;font-size:12px">· '+groups[it].length+'개</span></div>'+_regTable(groups[it])+'</div>';
+  }).join("");
+}
+/* 담당별 후보 (업로드 성과 기준) */
+function _candRow(u){
   var vw=_num(u.views), cm=_num(u.comments);
-  var link=u.link||"";
-  var linkHtml=link?('<a href="'+esc(link)+'" target="_blank" rel="noopener" style="color:var(--signal);word-break:break-all">'+esc(link)+'</a>'
-      +' <button class="btn sm" style="padding:1px 8px;font-size:11px" onclick="copyText(this,\''+esc(link).replace(/'/g,"\\'")+'\')">복사</button>')
-    :'<span style="color:var(--ink-3)">(링크 없음)</span>';
+  var added=_refHas(u.link);
+  var btn=added?'<span style="font-size:11px;color:var(--signal);font-weight:700">✓ 추가됨</span>'
+    :'<button class="btn sm pri" style="padding:2px 10px;font-size:11px" onclick="addRefFromUp(\''+esc(String(u.id))+'\',this)">레퍼런스로 추가</button>';
   return '<tr>'
     +'<td style="padding:7px 8px;font-weight:600">'+esc(u.name||"—")+'</td>'
     +'<td style="padding:7px 8px;font-family:var(--mono);white-space:nowrap">'+esc(u.phone||"—")+'</td>'
     +'<td style="padding:7px 8px;white-space:nowrap">'+esc(u.item||u.cat||"—")+'</td>'
     +'<td style="padding:7px 8px;white-space:nowrap"><span class="num">'+nf(vw)+'</span><span style="color:var(--ink-3);font-size:11px"> 뷰</span> · <span class="num">'+nf(cm)+'</span><span style="color:var(--ink-3);font-size:11px"> 댓글</span></td>'
-    +'<td style="padding:7px 8px;font-size:12px">'+linkHtml+'</td>'
+    +'<td style="padding:7px 8px;font-size:12px">'+_linkCell(u.link||"")+'</td>'
+    +'<td style="padding:7px 8px">'+btn+'</td>'
     +'</tr>';
 }
-function _refTable(list){
-  if(!list.length) return '<div style="font-size:12.5px;color:var(--ink-3);padding:8px 2px">아직 기준을 넘은 영상이 없어요.</div>';
+function _candTable(list){
   return '<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
     +'<thead><tr style="text-align:left;color:var(--ink-3);font-size:11.5px;border-bottom:1px solid var(--line)">'
-    +'<th style="padding:6px 8px;font-weight:600">이름</th><th style="padding:6px 8px;font-weight:600">연락처</th><th style="padding:6px 8px;font-weight:600">시술명</th><th style="padding:6px 8px;font-weight:600">성과</th><th style="padding:6px 8px;font-weight:600">영상 링크</th></tr></thead>'
-    +'<tbody>'+list.map(_refRow).join("")+'</tbody></table></div>';
+    +'<th style="padding:6px 8px;font-weight:600">이름</th><th style="padding:6px 8px;font-weight:600">연락처</th><th style="padding:6px 8px;font-weight:600">시술명</th><th style="padding:6px 8px;font-weight:600">성과</th><th style="padding:6px 8px;font-weight:600">영상 링크</th><th style="padding:6px 8px;font-weight:600"></th></tr></thead>'
+    +'<tbody>'+list.map(_candRow).join("")+'</tbody></table></div>';
 }
 function renderRef(){
-  var refs=UP.filter(_isRef).slice().sort(function(a,b){ return _num(b.views)-_num(a.views); });
-  var _na=$("#refAllNote"); if(_na)_na.textContent=nf(refs.length)+"개";
-  var _ra=$("#refAll"); if(_ra)_ra.innerHTML=_refTable(refs);
+  var _na=$("#refAllNote"); if(_na)_na.textContent=nf(REF.length)+"개";
+  var _ra=$("#refAll"); if(_ra)_ra.innerHTML=_regGrouped();
   var _ro=$("#refByOwner"); if(!_ro) return;
-  if(!refs.length){ _ro.innerHTML='<div style="font-size:12.5px;color:var(--ink-3);padding:8px 2px">아직 기준을 넘은 인플이 없어요.</div>'; return; }
+  var cands=UP.filter(_isRef).slice().sort(function(a,b){ return _num(b.views)-_num(a.views); });
+  if(!cands.length){ _ro.innerHTML='<div style="font-size:12.5px;color:var(--ink-3);padding:8px 2px">아직 기준(조회수 10만↑ 또는 댓글 1000개↑)을 넘은 인플이 없어요.</div>'; return; }
   var html="";
   OW.forEach(function(o){
-    var mine=refs.filter(function(u){return u.owner===o;});
+    var mine=cands.filter(function(u){return u.owner===o;});
     if(!mine.length) return;
-    html+='<div style="margin-bottom:14px"><div style="font-weight:700;font-size:13.5px;margin-bottom:5px">'+esc(o)+' <span style="color:var(--ink-3);font-weight:400;font-size:12px">· '+mine.length+'명</span></div>'+_refTable(mine)+'</div>';
+    html+='<div style="margin-bottom:14px"><div style="font-weight:700;font-size:13.5px;margin-bottom:5px">'+esc(o)+' <span style="color:var(--ink-3);font-weight:400;font-size:12px">· '+mine.length+'명</span></div>'+_candTable(mine)+'</div>';
   });
-  var others=refs.filter(function(u){ return OW.indexOf(u.owner)<0; });
-  if(others.length) html+='<div style="margin-bottom:14px"><div style="font-weight:700;font-size:13.5px;margin-bottom:5px">기타 <span style="color:var(--ink-3);font-weight:400;font-size:12px">· '+others.length+'명</span></div>'+_refTable(others)+'</div>';
-  _ro.innerHTML=html||'<div style="font-size:12.5px;color:var(--ink-3);padding:8px 2px">담당 지정된 우수 인플이 없어요.</div>';
+  var others=cands.filter(function(u){ return OW.indexOf(u.owner)<0; });
+  if(others.length) html+='<div style="margin-bottom:14px"><div style="font-weight:700;font-size:13.5px;margin-bottom:5px">기타 <span style="color:var(--ink-3);font-weight:400;font-size:12px">· '+others.length+'명</span></div>'+_candTable(others)+'</div>';
+  _ro.innerHTML=html||'<div style="font-size:12.5px;color:var(--ink-3);padding:8px 2px">담당 지정된 후보가 없어요.</div>';
+}
+function _addRefLocal(rec){ REF.unshift(rec); renderRef(); }
+function addRef(obj,done){
+  var rec={name:obj.name||"",phone:obj.phone||"",account:obj.account||"",item:obj.item||"",link:obj.link||"",note:obj.note||""};
+  if(_refHas(rec.link)&&rec.link){ alert("이미 등록된 영상이에요."); if(done)done(false); return; }
+  if(window._sb){
+    window._sb.from("refs").insert(rec).select().then(function(r){
+      if(r.error){ alert("저장 실패: "+r.error.message); if(done)done(false); return; }
+      var saved=(r.data&&r.data[0])||rec; _addRefLocal(saved); if(done)done(true);
+    });
+  } else { rec.id="local-"+Date.now(); _addRefLocal(rec); if(done)done(true); }
+}
+window.addRefFromUp=function(id,btn){
+  var u=null; for(var i=0;i<UP.length;i++){ if(String(UP[i].id)===String(id)){ u=UP[i]; break; } }
+  if(!u) return;
+  if(btn)btn.disabled=true;
+  addRef({name:u.name,phone:u.phone,item:(u.item||u.cat||""),link:u.link,account:"",note:""},function(ok){ if(!ok&&btn)btn.disabled=false; });
+};
+window.delRef=function(id){
+  if(!confirm("이 레퍼런스를 삭제할까요?")) return;
+  function _local(){ for(var i=0;i<REF.length;i++){ if(String(REF[i].id)===String(id)){ REF.splice(i,1); break; } } renderRef(); }
+  if(window._sb){ window._sb.from("refs").delete().eq("id",id).then(function(r){ if(r.error){ alert("삭제 실패: "+r.error.message); return; } _local(); }); }
+  else _local();
+};
+function bindRef(){
+  var b=$("#rfAdd"); if(!b) return;
+  b.addEventListener("click",function(){
+    var item=($("#rfI").value||"").trim(), name=($("#rfN").value||"").trim(), account=($("#rfA").value||"").trim(), phone=($("#rfP").value||"").trim(), link=($("#rfL").value||"").trim(), note=($("#rfNote").value||"").trim();
+    if(!link){ alert("릴스 링크를 입력하세요."); return; }
+    b.disabled=true; b.textContent="추가 중…";
+    addRef({name:name,phone:phone,account:account,item:item,link:link,note:note},function(ok){
+      b.disabled=false; b.textContent="레퍼런스 추가";
+      if(ok){ $("#rfI").value=""; $("#rfN").value=""; $("#rfA").value=""; $("#rfP").value=""; $("#rfL").value=""; $("#rfNote").value=""; }
+    });
+  });
 }
 window.copyText=function(b,t){ if(navigator.clipboard)navigator.clipboard.writeText(t); var o=b.textContent; b.textContent="복사됨"; setTimeout(function(){b.textContent=o;},1200); };
 
@@ -1162,7 +1250,7 @@ function bindSet(){
   $("#abN").textContent=nf(CT.length); $("#abH").textContent=nf(HS.length); $("#abU").textContent=nf(UP.length);
 }
 
-fillSel(); rules(); tryList(); bindEntry(); bindSet();
+fillSel(); rules(); tryList(); bindEntry(); bindSet(); bindRef();
 renderDash(); renderPPP(); renderUpload(); renderUploadStats(); ['day','week','month'].forEach(function(_t){var _b=document.getElementById('upSeg_'+_t);if(_b)_b.addEventListener('click',function(){_upType=_t;_upCur=null;renderUploadStats();});}); ['upViews','upLikes','upComments','upImpc','upSaves','upShares','upReposts'].forEach(function(_id){var _e=document.getElementById(_id);if(_e)_e.addEventListener('input',_upRefreshScore);}); var _usb=document.getElementById('upSaveBtn'); if(_usb)_usb.addEventListener('click',_upSave); var _ucb=document.getElementById('upClrBtn'); if(_ucb)_ucb.addEventListener('click',_upClear); var _ufo=document.getElementById('upFormOwner'); if(_ufo)_ufo.textContent='담당: '+(OW[ME]||''); renderMyUploads(); var _mul=document.getElementById('myUpList'); if(_mul)_mul.addEventListener('click',function(e){ var b=e.target.closest?e.target.closest('button[data-id]'):null; if(b)_upEdit(b.getAttribute('data-id')); }); renderQuickGrid(); var _qa=document.getElementById('quickAdd'); if(_qa)_qa.addEventListener('click',_quickAddRow);
 var _dlb=document.getElementById('dlUpBtn'); var _dlr=document.getElementById('dlRange'); if(_dlb){ if(DL_ALLOWED.indexOf(window.__ME__)>=0){ _dlb.style.display=""; if(_dlr)_dlr.style.display="inline-flex"; _dlb.addEventListener('click',_exportUploadsCSV); } else { _dlb.style.display="none"; if(_dlr)_dlr.style.display="none"; } }
 var _qsk=document.getElementById('qSortKey'); if(_qsk)_qsk.addEventListener('change',renderQuickGrid);
@@ -1268,7 +1356,8 @@ var _disp=window.__ME__||OW[ME]||""; $("#meNm").textContent=_disp; $("#meAv").te
     var blacklist=bl.map(function(b){ return {h:b.handle,name:b.name,phone:b.phone,date:b.date,reason:b.reason,tier:b.tier}; });
     var ups=await loadAll('uploads');
     var uploads=ups.filter(function(u){ return owners.indexOf(u.owner)>=0; }).map(function(u){ return {id:u.id,source:u.source,name:u.name,phone:u.phone,cat:u.cat,item:u.item,newrepeat:u.newrepeat,visit:u.visit,op:u.op,chk1:u.chk1,up:u.up,chk2:u.chk2,owner:u.owner,views:u.views,likes:u.likes,comments:u.comments,imp_comments:u.imp_comments,saves:u.saves,shares:u.shares,reposts:u.reposts,score:u.score,grade:u.grade,stage:u.stage,link:u.link}; });
-    window.__DATA__={owners:owners,handles:handles,contacts:contacts,blacklist:blacklist,uploads:uploads};
+    var refs=[]; try{ refs=await loadAll('refs'); }catch(e){ refs=[]; }
+    window.__DATA__={owners:owners,handles:handles,contacts:contacts,blacklist:blacklist,uploads:uploads,refs:refs};
     ov.remove();
     window.__APP__();
     var lo=document.createElement("button"); lo.textContent="로그아웃";
