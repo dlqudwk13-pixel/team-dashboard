@@ -209,6 +209,12 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
           <pre class="mono" id="report" style="font-size:12px;color:var(--ink-2);line-height:1.85;white-space:pre-wrap"></pre>
           <button class="btn sm" style="margin-top:11px" onclick="copyReport(this)">복사</button>
         </div>
+
+        <div class="card pad" id="allResCard" style="margin-top:14px;display:none">
+          <div class="hd"><h2>오늘 예약자 (담당별)</h2><span class="note">관리자 전용</span></div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin:4px 0 10px">오늘 예약 잡힌 분들을 담당자별로 모아서 봐요. 계정 · 예약날짜 순이에요.</div>
+          <div id="allRes"></div>
+        </div>
       </section>
 
       <!-- ── 레퍼런스 ── -->
@@ -788,14 +794,34 @@ function renderDash(){
   var _me=OW[ME]||"";
   var _meIdx=ME;
   var myTd=CT.filter(function(c){return c[1]===TODAY&&c[2]===_meIdx;});
-  var myRes=myTd.filter(function(c){return c[3];}).length;
+  var myResList=myTd.filter(function(c){return c[3];});
+  var myRes=myResList.length;
   var myU=UP.filter(function(u){return u.up===TODAY&&u.owner===_me;});
   var _moKey=TODAY.slice(0,7), _moC=0, _moR=0;
   CT.forEach(function(c){ if(c[2]===_meIdx&&c[1].slice(0,7)===_moKey){ _moC++; if(c[3])_moR++; } });
   $("#report").textContent="[일간보고] "+TODAY+" · "+_me+"\n컨텍 "+nf(myTd.length)+"명 · 예약 "+nf(myRes)+"명 · 업로드 "+nf(myU.length)+"건\n"+
     "월 누적 컨텍 "+nf(_moC)+"명 / 예약 "+nf(_moR)+"명 ("+(_moC?(_moR/_moC*100).toFixed(1):0)+"%)"+
+    (myRes?("\n\n[예약자]\n"+myResList.map(function(c){return "· "+(HS[c[0]]||"")+" · "+c[1];}).join("\n")):"")+
     (myU.length?("\n\n[업로드]\n"+myU.map(function(u){return "· "+(u.link||"(링크 없음)");}).join("\n")):"");
+  renderAllRes();
   renderRef();
+}
+/* 오늘 예약자 담당별 (관리자 전용) */
+function renderAllRes(){
+  var card=$("#allResCard"), box=$("#allRes");
+  if(!card||!box) return;
+  if(!(window.__ISADMIN__ || window.__ME__==="이병주")){ card.style.display="none"; return; }
+  card.style.display="";
+  var today=CT.filter(function(c){return c[1]===TODAY&&c[3];});
+  if(!today.length){ box.innerHTML='<div style="font-size:12.5px;color:var(--ink-3);padding:6px 2px">오늘 예약자가 아직 없어요.</div>'; return; }
+  var html="";
+  OW.forEach(function(o,oi){
+    var mine=today.filter(function(c){return c[2]===oi;});
+    if(!mine.length) return;
+    html+='<div style="margin-bottom:12px"><div style="font-weight:700;font-size:13.5px;margin-bottom:5px">'+esc(o)+' <span style="color:var(--ink-3);font-weight:400;font-size:12px">· '+mine.length+'명</span></div>'
+      +'<div style="font-size:12.5px;line-height:1.9">'+mine.map(function(c){return '<div style="display:flex;gap:10px"><span class="mono" style="word-break:break-all">'+esc(HS[c[0]]||"—")+'</span><span style="color:var(--ink-3);margin-left:auto;white-space:nowrap">'+esc(c[1])+'</span></div>';}).join("")+'</div></div>';
+  });
+  box.innerHTML=html;
 }
 window.copyReport=function(b){navigator.clipboard&&navigator.clipboard.writeText($("#report").textContent);b.textContent="복사됨";setTimeout(function(){b.textContent="복사";},1400);};
 
@@ -1057,8 +1083,16 @@ function bindEntry(){
     if(window._sb){
       var tasks=[];
       if(rows.length) tasks.push(window._sb.from("contacts").upsert(rows,{onConflict:"owner,handle,date",ignoreDuplicates:true}));
-      upg.forEach(function(x){ var patch={reserve:1}; if(procMap[x.h])patch.procedure=procMap[x.h]; tasks.push(window._sb.from("contacts").update(patch).eq("owner",OW[oi]).eq("handle",x.h).eq("date",TODAY)); });
-      Promise.all(tasks).then(function(res){ var err=null; res.forEach(function(r){ if(r&&r.error&&!err)err=r.error; }); if(err){ alert("저장 실패: "+err.message); b.disabled=false; b.textContent="검사된 것 모두 등록"; return; } done(); });
+      var upgTasks=upg.map(function(x){ var patch={reserve:1}; if(procMap[x.h])patch.procedure=procMap[x.h]; return window._sb.from("contacts").update(patch).eq("owner",OW[oi]).eq("handle",x.h).eq("date",TODAY).select("id"); });
+      upgTasks.forEach(function(t){ tasks.push(t); });
+      Promise.all(tasks).then(function(res){
+        var err=null; res.forEach(function(r){ if(r&&r.error&&!err)err=r.error; });
+        if(err){ alert("저장 실패: "+err.message); b.disabled=false; b.textContent="검사된 것 모두 등록"; return; }
+        // 예약 전환이 실제로 반영됐는지 확인 (RLS 등으로 0건이면 경고)
+        var blocked=0; for(var i=0;i<upgTasks.length;i++){ var r=res[res.length-upgTasks.length+i]; if(r&&(!r.data||r.data.length===0)) blocked++; }
+        if(blocked){ alert("예약 전환이 저장되지 않았어요 ("+blocked+"건). DB 수정 권한(UPDATE 정책)이 없을 수 있어요. 관리자에게 문의하세요."); b.disabled=false; b.textContent="검사된 것 모두 등록"; return; }
+        done();
+      });
     }
     else { done(); }
   }
