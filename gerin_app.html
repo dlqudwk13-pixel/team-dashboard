@@ -1372,25 +1372,25 @@ var _disp=window.__ME__||OW[ME]||""; $("#meNm").textContent=_disp; $("#meAv").te
     return out;
   }
   async function boot(){
-    var mem=await loadAll('members');
+    var _memP=loadAll('members'), _userP=sb.auth.getUser().catch(function(){return {data:{}};});
+    var mem=await _memP;
     var active=mem.filter(function(m){return m.active!==false;});
     var owners=active.map(function(m){return m.name;});
     if(!owners.length) owners=window.__DATA__.owners;   // 안전장치
     var emailName={}; mem.forEach(function(m){ emailName[m.email]=m.name; });
-    var _meEmail=""; try{ var _u=await sb.auth.getUser(); _meEmail=(_u.data.user&&_u.data.user.email)||""; window.__ME__=emailName[_meEmail]||null; }catch(e){}
+    var _meEmail=""; try{ var _u=await _userP; _meEmail=(_u.data.user&&_u.data.user.email)||""; window.__ME__=emailName[_meEmail]||null; }catch(e){}
     var _meRec=null; for(var _mi=0;_mi<mem.length;_mi++){ if(mem[_mi].email===_meEmail){ _meRec=mem[_mi]; break; } }
     window.__ISADMIN__=!!(_meRec&&_meRec.is_admin);
     window.__MEMBERS__=mem;
     if(_meRec && _meRec.approved===false){ showPending(); return; }
-    var rows=await loadAll('contacts');
+    // 큰 데이터는 병렬로 (로딩 속도 개선)
+    var _res=await Promise.all([ loadAll('contacts'), loadAll('blacklist'), loadAll('uploads'), loadAll('refs').catch(function(){return [];}) ]);
+    var rows=_res[0], bl=_res[1], ups=_res[2], refs=_res[3]||[];
     var hmap={},handles=[];
     function hi(h){ if(!(h in hmap)){hmap[h]=handles.length;handles.push(h);} return hmap[h]; }
     var contacts=[]; rows.forEach(function(r){ var oi=owners.indexOf(r.owner); if(oi<0) return; contacts.push([hi(r.handle), r.date, oi, r.reserve?1:0, r.memo||""]); });
-    var bl=await loadAll('blacklist');
     var blacklist=bl.map(function(b){ return {h:b.handle,name:b.name,phone:b.phone,date:b.date,reason:b.reason,tier:b.tier}; });
-    var ups=await loadAll('uploads');
     var uploads=ups.filter(function(u){ return owners.indexOf(u.owner)>=0; }).map(function(u){ return {id:u.id,source:u.source,name:u.name,phone:u.phone,cat:u.cat,item:u.item,newrepeat:u.newrepeat,visit:u.visit,op:u.op,chk1:u.chk1,up:u.up,chk2:u.chk2,owner:u.owner,views:u.views,likes:u.likes,comments:u.comments,imp_comments:u.imp_comments,saves:u.saves,shares:u.shares,reposts:u.reposts,score:u.score,grade:u.grade,stage:u.stage,link:u.link}; });
-    var refs=[]; try{ refs=await loadAll('refs'); }catch(e){ refs=[]; }
     window.__DATA__={owners:owners,handles:handles,contacts:contacts,blacklist:blacklist,uploads:uploads,refs:refs};
     ov.remove();
     window.__APP__();
@@ -1408,8 +1408,19 @@ var _disp=window.__ME__||OW[ME]||""; $("#meNm").textContent=_disp; $("#meAv").te
       +'</div>';
     var pb=document.getElementById('__plo'); if(pb)pb.onclick=function(){ sb.auth.signOut().then(function(){location.reload();}); };
   }
-  render();
-  sb.auth.getSession().then(function(r){ if(r.data.session){ boot().catch(function(e){var le=document.getElementById('__le'); if(le)le.textContent='데이터 로드 실패: '+e.message;}); } });
+  function showLoading(){
+    ov.innerHTML='<div style="background:#fff;padding:30px 26px;border-radius:16px;width:300px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35)">'
+      +'<div style="width:34px;height:34px;margin:0 auto 12px;border:3px solid #e3e8e6;border-top-color:#0e7a5f;border-radius:50%;animation:__spin .8s linear infinite"></div>'
+      +'<div style="font-size:15px;font-weight:700;color:#0e7a5f">불러오는 중…</div>'
+      +'<div style="font-size:12.5px;color:#8a8a8a;margin-top:6px">잠시만 기다려 주세요</div></div>'
+      +'<style>@keyframes __spin{to{transform:rotate(360deg)}}</style>';
+  }
+  // 세션이 있으면 로그인 폼 대신 로딩 화면을 먼저 보여줌 (재로그인 오해 방지)
+  showLoading();
+  sb.auth.getSession().then(function(r){
+    if(r.data.session){ boot().catch(function(e){ render(); var le=document.getElementById('__le'); if(le)le.textContent='데이터 로드 실패: '+e.message; }); }
+    else { render(); }
+  }).catch(function(){ render(); });
 })();
 </script>
 </body>
