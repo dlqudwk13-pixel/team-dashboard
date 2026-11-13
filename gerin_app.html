@@ -446,11 +446,11 @@ label.fl{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
   </div>
 </div>
 
-<script>window.__DATA__={"owners":["김수아","김지수","윤설아","윤예지"],"handles":[],"contacts":[],"blacklist":[],"uploads":[],"refs":[]};</script>
+<script>window.__DATA__={"owners":["김수아","김지수","윤설아","윤예지"],"handles":[],"contacts":[],"blacklist":[],"uploads":[],"refs":[],"notes":{}};</script>
 <script>
 window.__APP__=function(){
 "use strict";
-var D=window.__DATA__, OW=D.owners, HS=D.handles, CT=D.contacts, BL=D.blacklist, UP=D.uploads, REF=D.refs||[];
+var D=window.__DATA__, OW=D.owners, HS=D.handles, CT=D.contacts, BL=D.blacklist, UP=D.uploads, REF=D.refs||[], NOTES=D.notes||{};
 var CD={own:90,self:30}, ME=(function(){var _m=OW.indexOf(window.__ME__||"");return _m<0?0:_m;})();
 function _nowKST(){return new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Seoul"});}
 var TODAY=_nowKST();
@@ -849,7 +849,7 @@ function _regRow(r){
     +'<td style="padding:7px 8px;font-size:12px">'+_acctCell(r.account||"")+'</td>'
     +'<td style="padding:7px 8px;font-family:var(--mono);white-space:nowrap">'+esc(r.phone||"—")+'</td>'
     +'<td style="padding:7px 8px;font-size:12px">'+_linkCell(r.link||"")+'</td>'
-    +'<td style="padding:7px 8px;font-size:12px;color:var(--ink-2)">'+esc(r.note||"")+'</td>'
+    +'<td style="padding:7px 8px"><input data-rid="'+esc(String(r.id))+'" value="'+esc(r.note||"")+'" placeholder="시술·시기·특이사항 등" style="width:100%;min-width:150px;box-sizing:border-box;padding:5px 7px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:inherit" onchange="saveRefNote(this)"></td>'
     +'<td style="padding:7px 8px"><button class="btn sm" style="padding:1px 9px;font-size:11px;color:#c0392b" onclick="delRef(\''+esc(String(r.id))+'\')">삭제</button></td>'
     +'</tr>';
 }
@@ -939,6 +939,12 @@ function bindRef(){
     });
   });
 }
+window.saveRefNote=function(el){
+  var id=el.getAttribute('data-rid'), v=(el.value||"").trim();
+  function _local(){ for(var i=0;i<REF.length;i++){ if(String(REF[i].id)===String(id)){ REF[i].note=v; break; } } el.style.borderColor="#1baf7a"; setTimeout(function(){el.style.borderColor="";},900); }
+  if(window._sb){ window._sb.from("refs").update({note:v}).eq("id",id).then(function(r){ if(r.error){ alert("비고 저장 실패: "+r.error.message); return; } _local(); }); }
+  else _local();
+};
 window.copyText=function(b,t){ if(navigator.clipboard)navigator.clipboard.writeText(t); var o=b.textContent; b.textContent="복사됨"; setTimeout(function(){b.textContent=o;},1200); };
 
 /* ══ entry ══ */
@@ -996,12 +1002,29 @@ function check(q){
   }
   html+='</div>';
   if(L.length) html+='<div style="font-size:11.5px;color:var(--ink-3);margin-top:7px">'+esc(sub)+'</div>';
+  var _note=NOTES[q]||{};
+  html+='<div style="margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface-2)">'
+    +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><b style="font-size:12.5px">비고 (특이사항)</b>'
+    +(_note.at?'<span style="font-size:11px;color:var(--ink-3);margin-left:auto">'+esc(_note.by||"")+' · '+esc(String(_note.at).slice(0,10))+'</span>':'<span style="font-size:11px;color:var(--ink-3);margin-left:auto">지난 대화·주의할 점을 다같이 공유</span>')+'</div>'
+    +'<textarea id="hnote" rows="2" placeholder="예: 지난번 ○○ 때문에 컨택 거절, 당분간 연락 자제" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical">'+esc(_note.note||"")+'</textarea>'
+    +'<div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="btn sm" id="hnoteSave" style="padding:3px 12px;font-size:12px">비고 저장</button></div>'
+    +'</div>';
   box.innerHTML=html;
+  var _hs=document.getElementById('hnoteSave'); if(_hs)_hs.addEventListener('click',function(){ var ta=document.getElementById('hnote'); saveHandleNote(q, ta?ta.value:""); });
   picked={h:q,st:st};
   btn.disabled=(st==="stop");
   btn.textContent=st==="stop"?"등록 차단됨":st==="warn"?"확인하고 등록":"등록";
   btn.classList.toggle("pri",st!=="stop");
 }
+window.saveHandleNote=function(h,text){
+  h=(h||"").trim().toLowerCase().replace(/^@/,""); if(!h) return;
+  text=(text||"").trim();
+  var by=window.__ME__||OW[ME]||"", at=_nowKST();
+  var btn=document.getElementById('hnoteSave'); if(btn){btn.disabled=true;btn.textContent="저장 중…";}
+  function done(){ NOTES[h]={note:text,by:by,at:at}; if(btn){btn.disabled=false;btn.textContent="저장됨";setTimeout(function(){if(btn)btn.textContent="비고 저장";},1200);} }
+  if(window._sb){ window._sb.from("handle_notes").upsert({handle:h,note:text,updated_by:by,updated_at:new Date().toISOString()},{onConflict:"handle"}).then(function(r){ if(r.error){ alert("비고 저장 실패: "+r.error.message); if(btn){btn.disabled=false;btn.textContent="비고 저장";} return;} done(); }); }
+  else done();
+};
 
 function suggest(q){
   var s=$("#sug"); q=q.trim().toLowerCase().replace(/^@/,"");
@@ -1384,14 +1407,15 @@ var _disp=window.__ME__||OW[ME]||""; $("#meNm").textContent=_disp; $("#meAv").te
     window.__MEMBERS__=mem;
     if(_meRec && _meRec.approved===false){ showPending(); return; }
     // 큰 데이터는 병렬로 (로딩 속도 개선)
-    var _res=await Promise.all([ loadAll('contacts'), loadAll('blacklist'), loadAll('uploads'), loadAll('refs').catch(function(){return [];}) ]);
-    var rows=_res[0], bl=_res[1], ups=_res[2], refs=_res[3]||[];
+    var _res=await Promise.all([ loadAll('contacts'), loadAll('blacklist'), loadAll('uploads'), loadAll('refs').catch(function(){return [];}), loadAll('handle_notes').catch(function(){return [];}) ]);
+    var rows=_res[0], bl=_res[1], ups=_res[2], refs=_res[3]||[], hnotes=_res[4]||[];
+    var notesMap={}; hnotes.forEach(function(n){ notesMap[n.handle]={note:n.note,by:n.updated_by,at:n.updated_at}; });
     var hmap={},handles=[];
     function hi(h){ if(!(h in hmap)){hmap[h]=handles.length;handles.push(h);} return hmap[h]; }
     var contacts=[]; rows.forEach(function(r){ var oi=owners.indexOf(r.owner); if(oi<0) return; contacts.push([hi(r.handle), r.date, oi, r.reserve?1:0, r.memo||""]); });
     var blacklist=bl.map(function(b){ return {h:b.handle,name:b.name,phone:b.phone,date:b.date,reason:b.reason,tier:b.tier}; });
     var uploads=ups.filter(function(u){ return owners.indexOf(u.owner)>=0; }).map(function(u){ return {id:u.id,source:u.source,name:u.name,phone:u.phone,cat:u.cat,item:u.item,newrepeat:u.newrepeat,visit:u.visit,op:u.op,chk1:u.chk1,up:u.up,chk2:u.chk2,owner:u.owner,views:u.views,likes:u.likes,comments:u.comments,imp_comments:u.imp_comments,saves:u.saves,shares:u.shares,reposts:u.reposts,score:u.score,grade:u.grade,stage:u.stage,link:u.link}; });
-    window.__DATA__={owners:owners,handles:handles,contacts:contacts,blacklist:blacklist,uploads:uploads,refs:refs};
+    window.__DATA__={owners:owners,handles:handles,contacts:contacts,blacklist:blacklist,uploads:uploads,refs:refs,notes:notesMap};
     ov.remove();
     window.__APP__();
     var lo=document.createElement("button"); lo.textContent="로그아웃";
