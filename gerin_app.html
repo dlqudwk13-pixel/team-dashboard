@@ -849,7 +849,7 @@ function _regRow(r){
     +'<td style="padding:7px 8px;font-size:12px">'+_acctCell(r.account||"")+'</td>'
     +'<td style="padding:7px 8px;font-family:var(--mono);white-space:nowrap">'+esc(r.phone||"—")+'</td>'
     +'<td style="padding:7px 8px;font-size:12px">'+_linkCell(r.link||"")+'</td>'
-    +'<td style="padding:7px 8px"><input data-rid="'+esc(String(r.id))+'" value="'+esc(r.note||"")+'" placeholder="시술·시기·특이사항 등" style="width:100%;min-width:150px;box-sizing:border-box;padding:5px 7px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:inherit" onchange="saveRefNote(this)"></td>'
+    +'<td style="padding:7px 8px"><div style="display:flex;gap:4px;align-items:center"><input data-rid="'+esc(String(r.id))+'" value="'+esc(r.note||"")+'" placeholder="시술·시기·특이사항 등" style="flex:1;min-width:120px;box-sizing:border-box;padding:5px 7px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:inherit"><button class="btn sm" style="padding:2px 9px;font-size:11px" onclick="saveRefNote(this)">저장</button></div></td>'
     +'<td style="padding:7px 8px"><button class="btn sm" style="padding:1px 9px;font-size:11px;color:#c0392b" onclick="delRef(\''+esc(String(r.id))+'\')">삭제</button></td>'
     +'</tr>';
 }
@@ -939,10 +939,12 @@ function bindRef(){
     });
   });
 }
-window.saveRefNote=function(el){
+window.saveRefNote=function(btn){
+  var el=btn.parentNode.querySelector('input'); if(!el) return;
   var id=el.getAttribute('data-rid'), v=(el.value||"").trim();
-  function _local(){ for(var i=0;i<REF.length;i++){ if(String(REF[i].id)===String(id)){ REF[i].note=v; break; } } el.style.borderColor="#1baf7a"; setTimeout(function(){el.style.borderColor="";},900); }
-  if(window._sb){ window._sb.from("refs").update({note:v}).eq("id",id).then(function(r){ if(r.error){ alert("비고 저장 실패: "+r.error.message); return; } _local(); }); }
+  btn.disabled=true; btn.textContent="저장중";
+  function _local(){ for(var i=0;i<REF.length;i++){ if(String(REF[i].id)===String(id)){ REF[i].note=v; break; } } btn.disabled=false; btn.textContent=v?"저장됨":"삭제됨"; el.style.borderColor="#1baf7a"; setTimeout(function(){btn.textContent="저장"; el.style.borderColor="";},1200); }
+  if(window._sb){ window._sb.from("refs").update({note:v}).eq("id",id).then(function(r){ if(r.error){ alert("비고 저장 실패: "+r.error.message); btn.disabled=false; btn.textContent="저장"; return; } _local(); }); }
   else _local();
 };
 window.copyText=function(b,t){ if(navigator.clipboard)navigator.clipboard.writeText(t); var o=b.textContent; b.textContent="복사됨"; setTimeout(function(){b.textContent=o;},1200); };
