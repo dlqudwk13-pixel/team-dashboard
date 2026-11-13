@@ -939,6 +939,10 @@ function bindRef(){
     });
   });
 }
+window.saveBulkNote=function(btn){
+  var box=btn.parentNode, el=box.querySelector('input.bulk-note'); if(!el) return;
+  saveHandleNote(el.getAttribute('data-h'), el.value, btn);
+};
 window.saveRefNote=function(btn){
   var el=btn.parentNode.querySelector('input'); if(!el) return;
   var id=el.getAttribute('data-rid'), v=(el.value||"").trim();
@@ -1018,12 +1022,13 @@ function check(q){
   btn.textContent=st==="stop"?"등록 차단됨":st==="warn"?"확인하고 등록":"등록";
   btn.classList.toggle("pri",st!=="stop");
 }
-window.saveHandleNote=function(h,text){
+window.saveHandleNote=function(h,text,btn){
   h=(h||"").trim().toLowerCase().replace(/^@/,""); if(!h) return;
   text=(text||"").trim();
   var by=window.__ME__||OW[ME]||"", at=_nowKST();
-  var btn=document.getElementById('hnoteSave'); if(btn){btn.disabled=true;btn.textContent="저장 중…";}
-  function done(){ NOTES[h]={note:text,by:by,at:at}; if(btn){btn.disabled=false;btn.textContent="저장됨";setTimeout(function(){if(btn)btn.textContent="비고 저장";},1200);} }
+  if(!btn) btn=document.getElementById('hnoteSave');
+  if(btn){btn.disabled=true;btn.textContent="저장 중…";}
+  function done(){ NOTES[h]={note:text,by:by,at:at}; if(btn){btn.disabled=false;btn.textContent=text?"저장됨":"삭제됨";setTimeout(function(){if(btn)btn.textContent="비고 저장";},1200);} }
   if(window._sb){ window._sb.from("handle_notes").upsert({handle:h,note:text,updated_by:by,updated_at:new Date().toISOString()},{onConflict:"handle"}).then(function(r){ if(r.error){ alert("비고 저장 실패: "+r.error.message); if(btn){btn.disabled=false;btn.textContent="비고 저장";} return;} done(); }); }
   else done();
 };
@@ -1075,7 +1080,18 @@ function bindEntry(){
     $("#bulkRes").innerHTML=_bulk.map(function(x){
       var reg=(x.st==="ok"||x.st==="warn"||x.st==="today");
       var s=x.st==="stop"?{t:"차단",bg:"#fdeaea",c:"#c0392b"}:x.st==="dup"?{t:"오늘 예약됨",bg:"#eef1f0",c:"#7a8686"}:x.st==="today"?{t:"오늘 컨텍됨",bg:"#eaf2fb",c:"#1b6fb8"}:x.st==="warn"?{t:"경고",bg:"#fff3df",c:"#b8791b"}:{t:"등록가능",bg:"#e7f6ee",c:"#0e7a5f"};
-      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--line)"><span class="mono" style="font-size:12.5px">@'+esc(x.h)+'</span>'+(reg?'<label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2);cursor:pointer;margin-left:10px;user-select:none"><input type="checkbox" class="bulk-rsv" data-h="'+esc(x.h)+'" style="width:14px;height:14px;cursor:pointer">예약</label>':"")+(reg?'<input type="text" class="bulk-proc" data-h="'+esc(x.h)+'" placeholder="시술명" style="margin-left:8px;width:130px;padding:3px 8px;border:1px solid var(--line);border-radius:6px;font-size:11.5px;font-family:inherit">':"")+'<span style="margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+s.bg+';color:'+s.c+'">'+s.t+'</span><span style="font-size:11px;color:var(--ink-3);min-width:110px;text-align:right">'+esc(x.msg)+'</span></div>';
+      var _hi=HS.indexOf(x.h); var _L=_hi>=0?(IDX[_hi]||[]).slice().sort(function(a,b){return a[1]<b[1]?1:-1;}):[];
+      var _hist=_L.slice(0,6).map(function(c){return esc(OW[c[2]]||"?")+" "+String(c[1]||"").slice(5)+(c[3]?"·예약":"");}).join("  ·  ");
+      var _nt=NOTES[x.h]||{};
+      var _by=_nt.at?('<span style="font-size:10.5px;color:var(--ink-3);white-space:nowrap">'+esc(_nt.by||"")+' '+esc(String(_nt.at).slice(5,10))+'</span>'):'';
+      return '<div style="padding:8px 2px;border-bottom:1px solid var(--line)">'
+        +'<div style="display:flex;align-items:center;gap:8px"><span class="mono" style="font-size:12.5px">@'+esc(x.h)+'</span>'
+        +(reg?'<label style="display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-2);cursor:pointer;margin-left:10px;user-select:none"><input type="checkbox" class="bulk-rsv" data-h="'+esc(x.h)+'" style="width:14px;height:14px;cursor:pointer">예약</label>':"")
+        +(reg?'<input type="text" class="bulk-proc" data-h="'+esc(x.h)+'" placeholder="시술명" style="margin-left:8px;width:120px;padding:3px 8px;border:1px solid var(--line);border-radius:6px;font-size:11.5px;font-family:inherit">':"")
+        +'<span style="margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+s.bg+';color:'+s.c+'">'+s.t+'</span><span style="font-size:11px;color:var(--ink-3);min-width:100px;text-align:right">'+esc(x.msg)+'</span></div>'
+        +(_hist?'<div style="font-size:11px;color:var(--ink-3);margin:5px 0 0 2px">이력: '+_hist+'</div>':'')
+        +'<div style="display:flex;gap:4px;align-items:center;margin-top:5px"><input class="bulk-note" data-h="'+esc(x.h)+'" value="'+esc(_nt.note||"")+'" placeholder="비고(특이사항) — 다같이 공유, 예: 지난번 거절·연락 자제" style="flex:1;min-width:120px;box-sizing:border-box;padding:4px 8px;border:1px solid var(--line);border-radius:6px;font-size:11.5px;font-family:inherit"><button class="btn sm" style="padding:2px 9px;font-size:11px" onclick="saveBulkNote(this)">비고 저장</button>'+_by+'</div>'
+        +'</div>';
     }).join("");
     $("#bulkSave").disabled=(ok===0 && td===0);
   }
